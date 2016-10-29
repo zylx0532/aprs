@@ -123,13 +123,19 @@ function urlmessage($call, $icon, $dtmstr, $msg, $ddt) {
 		(substr($msg,3,1)=='/') &&
 		(substr($msg,7,1)=='g') &&
 		(substr($msg,11,1)=='t') &&
-		(substr($msg,15,1)=='r') )  // 090/001g003t064r000p000h24b10212 or 000/000g000t064r000P000p000h39b10165
+		( (substr($msg,15,1)=='r') // 090/001g003t064r000p000h24b10212 or 000/000g000t064r000P000p000h39b10165
+                ||(substr($msg,16,1)=='r')))  // 090/001g003t0064r000p000h24b10212 or 000/000g000t0064r000P000p000h39b10165
 	{
 		$c = substr($msg,0,3)*1; //wind dir
 		$s = number_format(substr($msg,4,3)*0.447,1); //wind speed
 		$g = number_format(substr($msg,8,3)*0.447,1); //5min wind speed
-		$t = number_format((substr($msg,12,3)-32)/1.8,1); //temp
-		$r = number_format(substr($msg,16,3)*25.4/100,1); //rainfall in mm 1 hour
+		if(substr($msg,15,1)=='r') {
+			$t = number_format((substr($msg,12,3)-32)/1.8,1); //temp
+			$r = number_format(substr($msg,16,3)*25.4/100,1); //rainfall in mm 1 hour
+		} else {
+			$t = number_format((substr($msg,12,4)-32)/1.8,1); //temp
+			$r = number_format(substr($msg,17,3)*25.4/100,1); //rainfall in mm 1 hour
+		}
 		$msg = strstr($msg,"p");
 		$p = number_format(substr($msg,1,3)*25.4/100,1); //rainfall in mm 24 hour
 		$msg = strstr($msg,"h");
@@ -1369,7 +1375,7 @@ if ($cmd=="setup") {
 		if(count($lat)<=2) 
 			$latui = $lati;
 		else if(strlen($lat[2])==3)
-			$latui = $lat[0] + ($lat[1]+$lat[2]/100)/100;
+			$latui = $lat[0] + ($lat[1]+$lat[2]/1000)/60;
 		else
 			$latui = $lat[0] + $lat[1]/60+$lat[2]/3600;
 
@@ -1377,7 +1383,7 @@ if ($cmd=="setup") {
 		if(count($lon)<=2) 
 			$lonui = $loni;
 		else if(strlen($lon[2])==3)
-			$lonui = $lon[0] + ($lon[1]+$lon[2]/100)/100;
+			$lonui = $lon[0] + ($lon[1]+$lon[2]/1000)/60;
 		else
 			$lonui = $lon[0] + $lon[1]/60 +$lon[2]/3600;
 

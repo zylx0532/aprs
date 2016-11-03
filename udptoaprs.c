@@ -62,6 +62,9 @@ void Process(int u_fd, int r_fd)
 	int max_fd;
 	char call[MAXLEN];
 
+	int enable = 1;
+	setsockopt(r_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&enable, sizeof(enable));
+
 	while (1) {
 		FD_ZERO(&rset);
 		FD_SET(u_fd, &rset);

@@ -127,6 +127,10 @@ void Process(int c_fd)
 	if(getsockname(r_fd,(struct sockaddr*)&sa,(socklen_t *)&salen)==0) 
 		strncpy(srcaddr,PrintAddr((struct sockaddr*)&sa),MAXLEN);
 
+	int enable = 1;
+	setsockopt(c_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&enable, sizeof(enable));
+	setsockopt(r_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&enable, sizeof(enable));
+
 	while (1) {
 		FD_ZERO(&rset);
 		FD_SET(c_fd, &rset);

@@ -98,6 +98,7 @@ void relayaprs(char *buf, int len)
 {
 	sendudp(buf,len, "127.0.0.1",14581);   // forward to china.aprs2.net
 	sendudp(buf,len, "120.25.100.30",14580);   // forward to aprs.hellocq.net
+	sendudp(buf,len, "112.74.218.122",14580);   // forward to ouxun server
 	if(strstr(buf,"-13>"))
                   sendudp(buf, len , "114.55.54.60",14580);   // forward -13 to lewei50.comI
 	insertU(buf,&len);

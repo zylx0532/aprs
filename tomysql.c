@@ -204,12 +204,7 @@ void ToMysql(char *buf, int len)
    			err_quit("Failed to insert row, Error: %s\n",
            		mysql_error(mysql));
 		}
-		end = my_stpcpy(sqlbuf,"INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		}
-		return;
+		goto pktstats;
 	}
 
 	if( (datatype == '`') || (datatype=='\'')) {    // Mic-E
@@ -310,12 +305,7 @@ void ToMysql(char *buf, int len)
    			err_quit("Failed to insert row, Error: %s\n",
            		mysql_error(mysql));
 		}
-		end = my_stpcpy(sqlbuf,"INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		}
-		return;
+		goto pktstats;
 	}
 unknow_msg:	
 	end = my_stpcpy(sqlbuf,"INSERT INTO aprspacket (tm,`call`, raw) VALUES(now(),'");
@@ -332,6 +322,17 @@ unknow_msg:
    		err_quit("Failed to insert row, Error: %s\n",
            	mysql_error(mysql));
 	}
+
+pktstats:
+	end = my_stpcpy(sqlbuf,"INSERT into aprspackethourcount values (DATE_FORMAT(now(), '%Y-%m-%d %H:00:00'), '");
+	end += mysql_real_escape_string(mysql,end,call,strlen(call));
+	end = my_stpcpy(end,"', 1) ON DUPLICATE KEY UPDATE pkts=pkts+1");
+	*end=0;
+#ifdef DEBUG
+	err_msg("%s\n",sqlbuf);
+#endif
+	mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf));
+
 	end = my_stpcpy(sqlbuf,"INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
 	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
    		err_quit("Failed to insert row, Error: %s\n",

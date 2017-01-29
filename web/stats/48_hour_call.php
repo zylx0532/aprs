@@ -33,7 +33,7 @@ for ($i=-48;$i<1;$i++) {
 	else $x=$x.",".$d;
 
 	$d=date("Y-m-d H:",strtotime($dstr));
-	$q="select count(distinct(`call`)) from aprspacket where tm>='".$d."00:00' and tm<='".$d.":59:59'";
+	$q="select count(distinct(`call`)) from aprspackethourcount where tm>='".$d."00:00' and tm<='".$d.":59:59'";
 	$result = $mysqli->query($q);
 	$r=$result->fetch_array();
 	if($v1=="")

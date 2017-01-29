@@ -159,4 +159,13 @@ CREATE TABLE `packetstats` (
   `packets` int(10) DEFAULT NULL,
   PRIMARY KEY (`day`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `aprspackethourcount` (
+  `tm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `call` varchar(16) NOT NULL,
+  `pkts` int(10) DEFAULT NULL,
+  PRIMARY KEY (`tm`,`call`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+
 </pre>

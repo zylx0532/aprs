@@ -5,4 +5,6 @@ include "web/db.php";
 
 $q="delete from aprspacket where tm<=date_sub(now(), interval 35 day)";
 $result = $mysqli->query($q);
+$q="delete from aprspackethourcount where tm<=date_sub(now(), interval 35 day)";
+$result = $mysqli->query($q);
 ?>

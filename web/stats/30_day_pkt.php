@@ -36,7 +36,8 @@ for ($i=-30;$i<1;$i++) {
 	$q="select sum(pkts) from aprspackethourcount where tm>='".$d." 00:00:00' and tm<='".$d." 23:59:59'";
 	$result = $mysqli->query($q);
 	$r=$result->fetch_array();
-	if($v1=="")
+	if($r[0]=="") $r[0]=0;
+	if($v1==="")
 		$v1=$r[0];
 	else $v1=$v1.",".$r[0];
 	if($r[0]>$y_max) $y_max = $r[0];

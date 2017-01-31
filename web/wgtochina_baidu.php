@@ -5,6 +5,7 @@ class Point {
     private $latitude;
     private $x;
     private $y;
+    private $ischina;
 
     public function setX( $x ) {
         $this->x = $x;
@@ -30,12 +31,20 @@ class Point {
         $this->latitude = $latitude;
     }
 
+    public function setIsChina( $ischina) {
+	$this->ischina = $ischina;
+    }
+
     public function getLongitude() {
         return $this->longitude;
     }
 
     public function getLatitude() {
         return $this->latitude;
+    }
+ 
+    public function getIsChina() {
+	return $this->ischina;
     }
 
 }
@@ -96,6 +105,11 @@ class Converter {
         $point = $this->wgtochina_lb( 1, (int)$x1, (int)$y1, (int)$gpsHeight, (int)$gpsWeek, (int)$gpsWeekTime );
 	$x = $point->getX()/3686400.0;
         $y = $point->getY()/3686400.0;
+	if($point->getIsChina()==0) {
+           $point->setX($x);
+           $point->setY($y);
+	   return $point;
+	}
         $z = sqrt($x * $x + $y * $y) + 0.00002 * sin($y * $x_pi);
         $theta = atan2($y, $x) + 0.000003 * cos($x * $x_pi);
         $point->setX($z * cos($theta) + 0.0065);
@@ -244,6 +258,7 @@ class Converter {
         $point = new Point();
         $point->setX( $wg_lng );
         $point->setY( $wg_lat );
+	$point->setIsChina( 0 );
         if ( $wg_heit > 5000 ) {
             return $point;
         }
@@ -263,6 +278,7 @@ class Converter {
         if ( $y_l > 55.8271 ) {
             return $point;
         }
+	$point->setIsChina( 1 );
         if ( $wg_flag == 0 ) {
             $this->IniCasm( $wg_time, $wg_lng, $wg_lat );
             $point = new Point();

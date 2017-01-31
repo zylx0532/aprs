@@ -325,7 +325,6 @@ class Converter {
         $h_add = $wg_heit;
         $x_add = $x_add + $h_add * 0.001 + $this->yj_sin2( $wg_time * 0.0174532925199433 ) + $this->random_yj();
         $y_add = $y_add + $h_add * 0.001 + $this->yj_sin2( $wg_time * 0.0174532925199433 ) + $this->random_yj();
-        $point = new Point();
         $point->setX( ( ( $x_l + $this->Transform_jy5( $y_l, $x_add ) ) * 3686400 ) );
         $point->setY( ( ( $y_l + $this->Transform_jyj5( $y_l, $y_add ) ) * 3686400 ) );
         return $point;

@@ -20,13 +20,15 @@ int checkcall(char*call) {
 	char *p;
 	if(strlen(call)<5) return 0;
 	p=call;
-	if(!isdigit(*(p+2))) return 0;
-/*
+/*	if(!isdigit(*(p+2))) return 0;
+
 	if(!isupper(*(p+0))) return 0;
 	if(!isupper(*(p+1))) return 0;
 	if(!isdigit(*(p+2))) return 0;
 */
-	while(*p) { 			// allow [A-Z0-9-]
+	while(*p) { 			// allow [a-zA-Z0-9-], change [a-z] to [A-Z]
+		if( islower(*p) )
+			*p = toupper(*p);
 		if( isupper(*p) ||
 		    isdigit(*p) ||
 		    (*p=='-') 

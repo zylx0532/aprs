@@ -5,7 +5,7 @@
 	127.0.0.1 14582
 	127.0.0.1 14583
 	120.25.100.30 14580
-	112.74.218.112 14580
+	106.15.35.48 14580
    send packets with "-13" to 114.55.54.60 14580
 */
 
@@ -94,7 +94,7 @@ void sendudp(char*buf, int len, char *host, int port)
 void relayaprs(char *buf, int len)
 {
         sendudp(buf,len, "120.25.100.30",14580);   // forward to aprs.hellocq.net
-        sendudp(buf,len, "112.74.218.112",14580);   // forward to ouxun server
+        sendudp(buf,len, "106.15.35.48",14580);   // forward to ouxun server
         sendudp(buf,len, "127.0.0.1",14582);   // udptolog
         sendudp(buf,len, "127.0.0.1",14583);   // udptomysql
 	if(strstr(buf,"-13>"))

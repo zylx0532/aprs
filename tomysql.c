@@ -90,6 +90,7 @@ void ToMysql(char *buf, int len)
 	path=s;
         p = strchr(s,':');
 	if(p==NULL) return;
+	*p=0;
 	p++; 
 	{	// fix PHG04600!2343.06NR12034.80E#NextVOD + TNC-22M Rx-only iGate144.640Mhz,
 		// change to !2343.06NR12034.80E# PHG04600 NextVOD + TNC-22M Rx-only iGate144.640Mhz,
@@ -183,7 +184,7 @@ void ToMysql(char *buf, int len)
 		}
 		
 
-		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg) VALUES(now(),'");
+		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
 		end += mysql_real_escape_string(mysql,end,call,strlen(call));
 		end = my_stpcpy(end,"','");
 		end += mysql_real_escape_string(mysql,end,&datatype,1);
@@ -197,6 +198,8 @@ void ToMysql(char *buf, int len)
 		end += mysql_real_escape_string(mysql,end,&symbol,1);
 		end = my_stpcpy(end,"','");
 		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
+		end = my_stpcpy(end,"','");
+		end += mysql_real_escape_string(mysql,end,path,strlen(path));
 		end = my_stpcpy(end,"')");
 		*end=0;
 #ifdef DEBUG
@@ -284,7 +287,7 @@ void ToMysql(char *buf, int len)
    			err_quit("Failed to insert row, Error: %s\n",
            		mysql_error(mysql));
 		} 
-		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg) VALUES(now(),'");
+		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
 		end += mysql_real_escape_string(mysql,end,call,strlen(call));
 		end = my_stpcpy(end,"','");
 		end += mysql_real_escape_string(mysql,end,&datatype,1);
@@ -298,6 +301,8 @@ void ToMysql(char *buf, int len)
 		end += mysql_real_escape_string(mysql,end,&symbol,1);
 		end = my_stpcpy(end,"','");
 		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
+		end = my_stpcpy(end,"','");
+		end += mysql_real_escape_string(mysql,end,path,strlen(path));
 		end = my_stpcpy(end,"')");
 		*end=0;
 #ifdef DEBUG

@@ -105,7 +105,7 @@ function GetIP(){
 	return $realip;  
 }  
 
-function urlmessage($call, $icon, $dtmstr, $msg, $ddt) {
+function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 	global $mysqli;
 	global $startdatestr;
 	$m = "<font face=微软雅黑 size=2><img src=".$icon."> ".$call." <a href=".$_SERVER["PHP_SELF"]."?call=".$call." target=_blank>数据包</a> <a id=\\\"m\\\" href=\\\"#\\\" onclick=\\\"javascript:monitor_station('".$call."');return false;\\\">";
@@ -285,10 +285,12 @@ function urlmessage($call, $icon, $dtmstr, $msg, $ddt) {
 			$t = strpos($rawmsg, "/UDP");
 			if($t !== false )
 				$rawmsg = substr($rawmsg, 0, $t);
-			$m = $m."<font color=red face=微软雅黑 size=2>".addcslashes(htmlspecialchars($rawmsg),"\\\r\n'\"")."</font>";
+			$m = $m."<font color=red face=微软雅黑 size=2>".addcslashes(htmlspecialchars($rawmsg),"\\\r\n'\"")."</font><br>";
 		}
 	}	
 	$stmt->close();
+	if($path!="") 
+		$m = $m."<font color=black face=微软雅黑 size=2>[".htmlspecialchars($path)."]</font>";
 	return $m;	
 }
 
@@ -349,16 +351,16 @@ if ($cmd=="tm") {
 		$tm = time() - 15*60;
 	if (isset($_REQUEST["call"]))  {
 		$call=$_REQUEST["call"];
-		$q="select lat,lon,`call`,unix_timestamp(tm),tm,concat(`table`,symbol),msg,datatype from lastpacket where (`call`=? or (tm>=FROM_UNIXTIME(?) and tm>=?) ) and lat<>'' and not lat like '0000.00%'";
+		$q="select lat,lon,`call`,unix_timestamp(tm),tm,concat(`table`,symbol),msg,datatype,path from lastpacket where (`call`=? or (tm>=FROM_UNIXTIME(?) and tm>=?) ) and lat<>'' and not lat like '0000.00%'";
 		$stmt=$mysqli->prepare($q);
         	$stmt->bind_param("sis",$call,$tm,$startdatestr);
 	} else {
-		$q="select lat,lon,`call`,unix_timestamp(tm),tm,concat(`table`,symbol),msg,datatype from lastpacket where tm>=FROM_UNIXTIME(?) and tm>=? and lat<>'' and not lat like '0000.00%'";
+		$q="select lat,lon,`call`,unix_timestamp(tm),tm,concat(`table`,symbol),msg,datatype,path from lastpacket where tm>=FROM_UNIXTIME(?) and tm>=? and lat<>'' and not lat like '0000.00%'";
 		$stmt=$mysqli->prepare($q);
         	$stmt->bind_param("is",$tm,$startdatestr);
 	}
         $stmt->execute();
-       	$stmt->bind_result($glat,$glon,$dcall,$dtm,$dtmstr,$dts,$dmsg,$ddt);
+       	$stmt->bind_result($glat,$glon,$dcall,$dtm,$dtmstr,$dts,$dmsg,$ddt,$dpath);
 	$stmt->store_result();
 	while($stmt->fetch()) {
                 $lat = strtolat($glat);
@@ -377,7 +379,7 @@ if ($cmd=="tm") {
 		if ( $lat < $lat1) continue;
 		if ( $lat > $lat2) continue;
 		$icon = "img/".bin2hex($dts).".png";
-		$dmsg = urlmessage($dcall, $icon, $dtmstr, $dmsg,$ddt);
+		$dmsg = urlmessage($dcall, $icon, $dtmstr, $dmsg, $dpath, $ddt);
 		echo "setstation(".$lon.",".$lat.",\"".$dcall."\",".$dtm.",\"".$icon."\",\n\"".$dmsg."\");\n";
 	}
 	$stmt->close();

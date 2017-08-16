@@ -91,6 +91,7 @@ CREATE TABLE `lastpacket` (
   `table` char(1) NOT NULL,
   `symbol` char(1) NOT NULL,
   `msg` varchar(200) NOT NULL,
+  `path` varchar(200) default "",
   PRIMARY KEY (`call`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 

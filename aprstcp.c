@@ -1,6 +1,6 @@
 /* aprstcp v1.0 by  james@ustc.edu.cn 2015.12.19
 
-   replay 14580 tcp aprs packet to "china.aprs2.net"
+   replay 14580 tcp aprs packet to "asia.aprs2.net"
    send all packets to udp
 	127.0.0.1 14582
 	127.0.0.1 14583
@@ -198,7 +198,7 @@ void Process(int c_fd)
 void usage()
 {
 	printf("\naprstcp v1.0 - aprs relay by james@ustc.edu.cn\n");
-	printf("\naprstcp x.x.x.x 14580 china.aprs2.net 14580\n\n");
+	printf("\naprstcp x.x.x.x 14580 asia.aprs2.net 14580\n\n");
 	exit(0);
 }
 
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 	if(argc!=5) {
 		laddr="0.0.0.0";
 		lport="14580";
-		raddr="china.aprs2.net";
+		raddr="asia.aprs2.net";
 		rport="14580";
 	}else {
 		laddr=argv[1]; lport=argv[2];

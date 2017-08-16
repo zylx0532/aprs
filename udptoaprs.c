@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 	err_msg("starting\n");
 	u_fd = Udp_server("127.0.0.1","14581",(socklen_t *)&llen);
 
-	r_fd = Tcp_connect("china.aprs2.net","14580");
+	r_fd = Tcp_connect("asia.aprs2.net","14580");
 	snprintf(buf,MAXLEN,"user %s pass %d vers udptoaprs 1.0 filter r/31.83/117.29/1\r\n",
 		argv[1], passcode(argv[1]));
 	Write(r_fd, buf, strlen(buf));

@@ -2,7 +2,7 @@
 
    connect to 127.0.0.1 tcp 14580 port, login filter p/BA p/BD p/BG p/BH p/BR
    send all packets to tcp
-	china.aprs2.net 14580
+	asia.aprs2.net 14580
 
 */
 
@@ -51,7 +51,7 @@ void Process(char*server,char *call)
 	snprintf(buffer,MAXLEN,"user %s pass %d vers aprsfwd 1.5 filter p/B\r\n",call,passcode(call));
 	Write(r_fd, buffer, strlen(buffer));
 
-	aprs_fd= Tcp_connect("china.aprs2.net","14580");
+	aprs_fd= Tcp_connect("asia.aprs2.net","14580");
 	optval = 1;
 	Setsockopt(aprs_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
 	optval = 3;

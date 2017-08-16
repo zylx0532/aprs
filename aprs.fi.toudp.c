@@ -1,6 +1,6 @@
 /* aprs.fi.toudp.c v1.0 by  james@ustc.edu.cn 2015.12.19
 
-   connect to china.aprs2.net. tcp 14580 port, login filter p/B p/VR2
+   connect to asia.aprs2.net. tcp 14580 port, login filter p/B p/VR2
    send all packets to udp host in file "/usr/src/arps/aprs.fi.udpdest"
 
 */
@@ -127,7 +127,7 @@ void usage()
 int main(int argc, char *argv[])
 {
 	char *call="BG6CQ-5";
-	char *server="china.aprs2.net";
+	char *server="asia.aprs2.net";
 	signal(SIGCHLD,SIG_IGN);
 	if(argc==3) {
 		server=argv[1];

@@ -65,8 +65,79 @@ int checklon(char *s) {
 	return 0;
 }
 
+void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char symbol, char *msg, char *raw, char *path)
+{
+	char sqlbuf[MAXLEN],*end;
+	end = my_stpcpy(sqlbuf,"INSERT INTO aprspacket (tm,`call`,datatype,lat,lon,`table`,symbol,msg,raw) VALUES(now(),'");
+	end += mysql_real_escape_string(mysql,end,call,strlen(call));
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&datatype,1);
+	end = my_stpcpy(end,"','");
+	end = my_stpcpy(end,lat);
+	end = my_stpcpy(end,"','");
+	end = my_stpcpy(end,lon);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&table,1);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&symbol,1);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,raw,strlen(raw));
+	end = my_stpcpy(end,"')");
+	*end=0;
+#ifdef DEBUG
+	err_msg("%s\n",sqlbuf);
+#endif
+	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
+   		err_quit("Failed to insert row, Error: %s\n",
+         		mysql_error(mysql));
+	}
+		
+	end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
+	end += mysql_real_escape_string(mysql,end,call,strlen(call));
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&datatype,1);
+	end = my_stpcpy(end,"','");
+	end = my_stpcpy(end,lat);
+	end = my_stpcpy(end,"','");
+	end = my_stpcpy(end,lon);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&table,1);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,&symbol,1);
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
+	end = my_stpcpy(end,"','");
+	end += mysql_real_escape_string(mysql,end,path,strlen(path));
+	end = my_stpcpy(end,"')");
+	*end=0;
+#ifdef DEBUG
+	err_msg("%s\n",sqlbuf);
+#endif
+	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
+   		err_quit("Failed to insert row, Error: %s\n",
+           		mysql_error(mysql));
+	}
+
+	end = my_stpcpy(sqlbuf,"INSERT into aprspackethourcount values (DATE_FORMAT(now(), '%Y-%m-%d %H:00:00'), '");
+	end += mysql_real_escape_string(mysql,end,call,strlen(call));
+	end = my_stpcpy(end,"', 1) ON DUPLICATE KEY UPDATE pkts=pkts+1");
+	*end=0;
+#ifdef DEBUG
+	err_msg("%s\n",sqlbuf);
+#endif
+	mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf));
+
+	end = my_stpcpy(sqlbuf,"INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
+	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
+   		err_quit("Failed to insert row, Error: %s\n",
+       		mysql_error(mysql));
+	}
+}
+
 void ToMysql(char *buf, int len)
-{	char bufcopy[MAXLEN],sqlbuf[MAXLEN],*end;
+{	char bufcopy[MAXLEN];
 	if(len<=10) return;
 	if(len>1000)len=1000;
 	if(buf[len-1]=='\n') len--;
@@ -157,62 +228,10 @@ void ToMysql(char *buf, int len)
 			p+=10;
 			msg=p;
 		}
-		end = my_stpcpy(sqlbuf,"INSERT INTO aprspacket (tm,`call`,datatype,lat,lon,`table`,symbol,msg,raw) VALUES(now(),'");
-		end += mysql_real_escape_string(mysql,end,call,strlen(call));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&datatype,1);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lat);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lon);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&table,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&symbol,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,bufcopy,len);
-		end = my_stpcpy(end,"')");
-		*end=0;
-#ifdef DEBUG
-		err_msg("%s\n",sqlbuf);
-#endif
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		}
 		
+		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
 
-		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
-		end += mysql_real_escape_string(mysql,end,call,strlen(call));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&datatype,1);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lat);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lon);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&table,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&symbol,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,path,strlen(path));
-		end = my_stpcpy(end,"')");
-		*end=0;
-#ifdef DEBUG
-		err_msg("%s\n",sqlbuf);
-#endif
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		}
-		goto pktstats;
-	}
-
-	if( (datatype == '`') || (datatype=='\'')) {    // Mic-E
+	} else if( (datatype == '`') || (datatype=='\'')) {    // Mic-E
 		if( strlen(p)<8 ) 
 			goto unknow_msg;
 		if( strlen(path)<6 )
@@ -262,88 +281,11 @@ void ToMysql(char *buf, int len)
 		table=*(p+7);
 		symbol = *(p+6);
 		p+=8;
-		end = my_stpcpy(sqlbuf,"INSERT INTO aprspacket (tm,`call`,datatype,lat,lon,`table`,symbol,msg,raw) VALUES(now(),'");
-		end += mysql_real_escape_string(mysql,end,call,strlen(call));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&datatype,1);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lat);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lon);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&table,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&symbol,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,bufcopy,len);
-		end = my_stpcpy(end,"')");
-		*end=0;
-#ifdef DEBUG
-		err_msg("%s\n",sqlbuf);
-#endif
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		} 
-		end = my_stpcpy(sqlbuf,"REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
-		end += mysql_real_escape_string(mysql,end,call,strlen(call));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&datatype,1);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lat);
-		end = my_stpcpy(end,"','");
-		end = my_stpcpy(end,lon);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&table,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,&symbol,1);
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,msg,strlen(msg));
-		end = my_stpcpy(end,"','");
-		end += mysql_real_escape_string(mysql,end,path,strlen(path));
-		end = my_stpcpy(end,"')");
-		*end=0;
-#ifdef DEBUG
-		err_msg("%s\n",sqlbuf);
-#endif
-		if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   			err_quit("Failed to insert row, Error: %s\n",
-           		mysql_error(mysql));
-		}
-		goto pktstats;
-	}
-unknow_msg:	
-	end = my_stpcpy(sqlbuf,"INSERT INTO aprspacket (tm,`call`, raw) VALUES(now(),'");
-	end += mysql_real_escape_string(mysql,end,call,strlen(call));
-	end = my_stpcpy(end,"','");
-	end += mysql_real_escape_string(mysql,end,bufcopy,len);
-	end = my_stpcpy(end,"')");
-	*end=0;
 
-#ifdef DEBUG
-	err_msg("%s\n",sqlbuf);
-#endif
-	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   		err_quit("Failed to insert row, Error: %s\n",
-           	mysql_error(mysql));
-	}
+		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
 
-pktstats:
-	end = my_stpcpy(sqlbuf,"INSERT into aprspackethourcount values (DATE_FORMAT(now(), '%Y-%m-%d %H:00:00'), '");
-	end += mysql_real_escape_string(mysql,end,call,strlen(call));
-	end = my_stpcpy(end,"', 1) ON DUPLICATE KEY UPDATE pkts=pkts+1");
-	*end=0;
-#ifdef DEBUG
-	err_msg("%s\n",sqlbuf);
-#endif
-	mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf));
-
-	end = my_stpcpy(sqlbuf,"INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
-	if (mysql_real_query(mysql,sqlbuf,(unsigned int) (end - sqlbuf))) {
-   		err_quit("Failed to insert row, Error: %s\n",
-       		mysql_error(mysql));
-	}
+	} else
+	unknow_msg:
+		SavePkt(call, 0, "", "", 0, 0, "", bufcopy, "");
 }
 

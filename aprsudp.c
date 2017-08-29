@@ -1,3 +1,17 @@
+/* aprsudp [ -d ]
+
+功能：
+	从 14580 UDP端口接收数据
+	使用UDP转发给以下端口
+	127.0.0.1 14581 
+	127.0.0.1 14582
+	127.0.0.1 14583
+	120.25.100.30 14580 (aprs.helloce.net)
+	106.15.35.48  14580 (欧讯服务器)
+	如果SSID中有-13，发给
+	114.55.54.60  14580（lewei50.com）
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -14,67 +28,14 @@
 #include <signal.h>
 #include <ctype.h>
 
-//#define DEBUG 1
+#include "sock.h"
 
 #define MAXLEN 16384
 #define PORT 14580
 
-int daemon_proc = 0;
+int debug = 0;
 
-void diep(char *s)
-{
-	if (daemon_proc)
-		syslog(LOG_CRIT, "%s: %s\n", s, strerror(errno));
-	else
-		perror(s);
-	exit(1);
-}
-
-void daemon_init(void)
-{
-	int i;
-	pid_t pid;
-	if ((pid = fork()) != 0)
-		exit(0);	/* parent terminates */
-	/* 41st child continues */
-	setsid();		/* become session leader */
-	signal(SIGHUP, SIG_IGN);
-	if ((pid = fork()) != 0)
-		exit(0);	/* 1st child terminates */
-	chdir("/");		/* change working directory */
-	umask(0);		/* clear our file mode creation mask */
-	for (i = 0; i < 3; i++)
-		close(i);
-	daemon_proc = 1;
-	openlog("aprsudp", LOG_PID, LOG_DAEMON);
-}
-
-void sendudp(char *buf, int len, char *host, int port)
-{
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-	int l;
-#ifdef DEBUG
-	fprintf(stderr, "send to %s,", host);
-#endif
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		fprintf(stderr, "socket error");
-		return;
-	}
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(port);
-	if (inet_aton(host, &si_other.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		close(s);
-		return;
-	}
-	l = sendto(s, buf, len, 0, (const struct sockaddr *)&si_other, slen);
-#ifdef DEBUG
-	fprintf(stderr, "%d\n", l);
-#endif
-	close(s);
-}
+#include "sendudp.c"
 
 void insertU(char *buf, int *len)
 {
@@ -98,6 +59,8 @@ void insertU(char *buf, int *len)
 
 void relayaprs(char *buf, int len)
 {
+	if (debug)
+		fprintf(stderr, "recv from UDP: %s\n", buf);
 	sendudp(buf, len, "127.0.0.1", 14581);	// forward to asia.aprs2.net
 	sendudp(buf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
 	sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
@@ -108,22 +71,23 @@ void relayaprs(char *buf, int len)
 	sendudp(buf, len, "127.0.0.1", 14583);	// udptomysql 
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
 	struct sockaddr_in si_me, si_other;
 	int s, slen = sizeof(si_other);
-#ifndef DEBUG
-	daemon_init();
-#endif
+	if (argc >= 2)
+		debug = 1;
+	if (debug == 0)
+		daemon_init("aprsudp", LOG_DAEMON);
 	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-		diep("socket");
+		err_sys("socket");
 
 	memset((char *)&si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(s, (const struct sockaddr *)&si_me, sizeof(si_me)) == -1)
-		diep("bind");
+		err_sys("bind");
 
 	while (1) {
 		char buf[MAXLEN];

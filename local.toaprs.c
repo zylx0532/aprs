@@ -32,13 +32,13 @@ int aprs_fd;
 
 #include "passcode.c"
 
-void Process(char*server,char *call) 
-{	
+void Process(char *server, char *call)
+{
 	char buffer[MAXLEN];
 	int n;
 	int optval;
-   	socklen_t optlen = sizeof(optval);
-	r_fd= Tcp_connect(server,"14580");
+	socklen_t optlen = sizeof(optval);
+	r_fd = Tcp_connect(server, "14580");
 	optval = 1;
 	Setsockopt(r_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
 	optval = 3;
@@ -48,10 +48,10 @@ void Process(char*server,char *call)
 	optval = 2;
 	Setsockopt(r_fd, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
 
-	snprintf(buffer,MAXLEN,"user %s pass %d vers aprsfwd 1.5 filter p/B\r\n",call,passcode(call));
+	snprintf(buffer, MAXLEN, "user %s pass %d vers aprsfwd 1.5 filter p/B\r\n", call, passcode(call));
 	Write(r_fd, buffer, strlen(buffer));
 
-	aprs_fd= Tcp_connect("asia.aprs2.net","14580");
+	aprs_fd = Tcp_connect("asia.aprs2.net", "14580");
 	optval = 1;
 	Setsockopt(aprs_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
 	optval = 3;
@@ -61,17 +61,18 @@ void Process(char*server,char *call)
 	optval = 200;
 	Setsockopt(aprs_fd, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
 
-	snprintf(buffer,MAXLEN,"user %s pass %d vers aprsfwd 1.5 \r\n",call,passcode(call));
+	snprintf(buffer, MAXLEN, "user %s pass %d vers aprsfwd 1.5 \r\n", call, passcode(call));
 	Write(aprs_fd, buffer, strlen(buffer));
 	while (1) {
 		n = Readline(r_fd, buffer, MAXLEN);
-		if(n<=0)   {
+		if (n <= 0) {
 			exit(0);
 		}
-		if(buffer[0]=='#') continue;
-		buffer[n]=0;
+		if (buffer[0] == '#')
+			continue;
+		buffer[n] = 0;
 #ifdef	DEBUG
-	fprintf(stderr,"r %s", buffer);
+		fprintf(stderr, "r %s", buffer);
 #endif
 		Write(aprs_fd, buffer, n);
 	}
@@ -86,32 +87,31 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-	char *call="BG5DNS-13";
-	char *server="127.0.0.1";
-	signal(SIGCHLD,SIG_IGN);
-	if(argc==3) {
-		server=argv[1];
-		call=argv[2];
-	} else if(argc!=1) {
+	char *call = "BG5DNS-13";
+	char *server = "127.0.0.1";
+	signal(SIGCHLD, SIG_IGN);
+	if (argc == 3) {
+		server = argv[1];
+		call = argv[2];
+	} else if (argc != 1) {
 		printf("local.toaprs server call\n");
 		exit(0);
 	}
-
 #ifndef DEBUG
-	daemon_init("local.toaprs",LOG_DAEMON);
-	while(1) {
-                int pid;
-                pid=fork();
-                if(pid==0) // i am child, will do the job
-                        break;
-                else if(pid==-1) // error
-                        exit(0);
-                else
-                        wait(NULL); // i am parent, wait for child
-                sleep(2);  // if child exit, wait 2 second, and rerun
-        }
+	daemon_init("local.toaprs", LOG_DAEMON);
+	while (1) {
+		int pid;
+		pid = fork();
+		if (pid == 0)	// i am child, will do the job
+			break;
+		else if (pid == -1)	// error
+			exit(0);
+		else
+			wait(NULL);	// i am parent, wait for child
+		sleep(2);	// if child exit, wait 2 second, and rerun
+	}
 #endif
 
-	Process(server,call);
-	return(0);
+	Process(server, call);
+	return (0);
 }

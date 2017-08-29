@@ -1,11 +1,17 @@
-/* aprstcp v1.0 by  james@ustc.edu.cn 2015.12.19
+/* aprscmdtcp v1.0 by  james@ustc.edu.cn 2015.12.19
+aprscmdtcp [ -d ] local_ip local_port remote_ip remote_port
+功能：
+        从 14590 tcp端口接收数据
+        使用TCP转发给asia.aprs2.net
+        使用UDP转发给以下端口
+                127.0.0.1 14582
+                127.0.0.1 14583
+                120.25.100.30 14580 (aprs.helloce.net)
+                106.15.35.48  14580 (欧讯服务器)
+                如果SSID中有-13，发给
+                114.55.54.60  14580（lewei50.com）
 
-   replay 14580 tcp aprs packet to "asia.aprs2.net"
-   send all packets to udp
-	127.0.0.1 14582
-	127.0.0.1 14583
-	120.25.100.30 14580
-   send packets with "-13" to 114.55.54.60 14580
+        aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
 */
 
 #include <stdio.h>
@@ -28,7 +34,7 @@
 
 #define MAXLEN 16384
 
-// #define DEBUG 1
+int debug = 0;
 
 static char mycall[20];
 char *laddr, *lport, *raddr, *rport;
@@ -63,32 +69,7 @@ void PrintStats(void)
 
 }
 
-void sendudp(char *buf, int len, char *host, int port)
-{
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-	int l;
-#ifdef DEBUG
-	fprintf(stderr, "send to %s,", host);
-#endif
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		fprintf(stderr, "socket error");
-		return;
-	}
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(port);
-	if (inet_aton(host, &si_other.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		close(s);
-		return;
-	}
-	l = sendto(s, buf, len, 0, (const struct sockaddr *)&si_other, slen);
-#ifdef DEBUG
-	fprintf(stderr, "%d\n", l);
-#endif
-	close(s);
-}
+#include "sendudp.c"
 
 void insertIG(char *buf, int *len)
 {
@@ -113,9 +94,8 @@ void insertIG(char *buf, int *len)
 			p++;
 		}
 		mycall[i] = 0;
-#ifdef DEBUG
-		fprintf(stderr, "get icall %s\n", mycall);
-#endif
+		if (debug)
+			fprintf(stderr, "get icall %s\n", mycall);
 		return;
 	}
 
@@ -126,9 +106,8 @@ void insertIG(char *buf, int *len)
 		}
 		p = buf + *len;
 		*len += snprintf(p, 15, "/IG:%s", mycall);
-#ifdef DEBUG
-		fprintf(stderr, "from igate %s\n", buf);
-#endif
+		if (debug)
+			fprintf(stderr, "from igate %s\n", buf);
 	}
 }
 
@@ -137,6 +116,7 @@ void relayaprs(char *buf, int len)
 	char mybuf[MAXLEN];
 	strncpy(mybuf, buf, len);
 	sendudp(mybuf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
+	sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
 	if (strstr(mybuf, "-13>"))
 		sendudp(mybuf, len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
 	insertIG(mybuf, &len);
@@ -173,9 +153,8 @@ void got_cmd_reply(char *buf, int len)
 		 "select id from ykcmd where `call`=\"%s\" and TIMESTAMPDIFF(second,sendtm,now())<=30 and replytm=\"0000-00-00 00:00:00\" order by sendtm limit 1",
 		 mycall);
 	if (mysql_query(mysql, sqlbuf) != 0) {
-#ifdef DEBUG
-		fprintf(stderr, "sql %s error\n", sqlbuf);
-#endif
+		if (debug)
+			fprintf(stderr, "sql %s error\n", sqlbuf);
 		return;
 	}
 	result = mysql_store_result(mysql);
@@ -189,13 +168,11 @@ void got_cmd_reply(char *buf, int len)
 			end = my_stpcpy(end, "\" where id=");
 			end = my_stpcpy(end, row[0]);
 			mysql_free_result(result);
-#ifdef DEBUG
-			fprintf(stderr, "sql %s \n", sqlbuf);
-#endif
+			if (debug)
+				fprintf(stderr, "sql %s \n", sqlbuf);
 			if (mysql_real_query(mysql, sqlbuf, end - sqlbuf) != 0) {
-#ifdef DEBUG
-				fprintf(stderr, "sql %s error\n", sqlbuf);
-#endif
+				if (debug)
+					fprintf(stderr, "sql %s error\n", sqlbuf);
 				return;
 			}
 
@@ -255,13 +232,11 @@ void got_new_cmd(char *buf, int len)
 	end = my_stpcpy(end, "\",\"");
 	end += mysql_real_escape_string(mysql, end, cmd, strlen(cmd));
 	end = my_stpcpy(end, "\",\"0000-00-00 00:00:00\",\"0000-00-00 00:00:00\")");
-#ifdef DEBUG
-	fprintf(stderr, "sql %s \n", sqlbuf);
-#endif
+	if (debug)
+		fprintf(stderr, "sql %s \n", sqlbuf);
 	if (mysql_real_query(mysql, sqlbuf, end - sqlbuf) != 0) {
-#ifdef DEBUG
-		fprintf(stderr, "sql %s error\n", sqlbuf);
-#endif
+		if (debug)
+			fprintf(stderr, "sql %s error\n", sqlbuf);
 	}
 }
 
@@ -318,13 +293,6 @@ void Process(int c_fd)
 				PrintStats();
 				exit(0);
 			}
-			if (strstr(buffer, "# javAPRSSrvr") && strstr(buffer, "T2CHINA 221.231.138.178:14580")) {
-				static time_t lastkeep = 0;
-				time_t curt = time(NULL);
-				if ((lastkeep != 0) && (curt - lastkeep < 60 * 10))
-					continue;
-				lastkeep = curt;
-			}
 			Write(c_fd, buffer, n);
 			rfwd += n;
 		}
@@ -350,14 +318,12 @@ void Process(int c_fd)
 				if (s == NULL)
 					break;
 				if (p[0] == '&') {
-#ifdef DEBUG
-					fprintf(stderr, "got & reply\n");
-#endif
+					if (debug)
+						fprintf(stderr, "got & reply\n");
 					got_cmd_reply(p, s - p + 1);
 				} else if (p[0] == '$') {
-#ifdef DEBUG
-					fprintf(stderr, "got $ cmd\n");
-#endif
+					if (debug)
+						fprintf(stderr, "got $ cmd\n");
 					got_new_cmd(p, s - p + 1);
 				} else {
 					Write(r_fd, p, s - p + 1);
@@ -378,9 +344,8 @@ void Process(int c_fd)
 			 "select id,concat('$',`call`,',',sn,',',pass,',',cmd) from ykcmd where `call`=\"%s\" and sendtm=\"0000-00-00 00:00:00\" order by cmdtm limit 1",
 			 mycall);
 		if (mysql_query(mysql, sqlbuf) != 0) {
-#ifdef DEBUG
-			fprintf(stderr, "sql %s error\n", sqlbuf);
-#endif
+			if (debug)
+				fprintf(stderr, "sql %s error\n", sqlbuf);
 			continue;
 		}
 		result = mysql_store_result(mysql);
@@ -390,19 +355,16 @@ void Process(int c_fd)
 			row = mysql_fetch_row(result);
 			if (row) {
 				snprintf(cmdbuf, MAXLEN, "%s\r\n", row[1]);
-#ifdef DEBUG
-				fprintf(stderr, "cmd %s \n", cmdbuf);
-#endif
+				if (debug)
+					fprintf(stderr, "cmd %s \n", cmdbuf);
 				Write(c_fd, cmdbuf, strlen(cmdbuf));
 				snprintf(sqlbuf, MAXLEN, "update ykcmd set sendtm=now() where id=%s", row[0]);
 				mysql_free_result(result);
-#ifdef DEBUG
-				fprintf(stderr, "sql %s \n", sqlbuf);
-#endif
+				if (debug)
+					fprintf(stderr, "sql %s \n", sqlbuf);
 				if (mysql_query(mysql, sqlbuf) != 0) {
-#ifdef DEBUG
-					fprintf(stderr, "sql %s error\n", sqlbuf);
-#endif
+					if (debug)
+						fprintf(stderr, "sql %s error\n", sqlbuf);
 					return;
 				}
 
@@ -414,8 +376,9 @@ void Process(int c_fd)
 
 void usage()
 {
-	printf("\naprstcp v1.0 - aprs relay by james@ustc.edu.cn\n");
-	printf("\naprstcp x.x.x.x 14580 asia.aprs2.net 14580\n\n");
+	printf("\naprscmdtcp v1.0 - aprs relay by james@ustc.edu.cn\n");
+	printf("aprscmdtcp [ -d ] [ local_ip local_port remote_ip remote_port ]\n");
+	printf("default is: aprscmdtcp 0.0.0.0 14590 asia.aprs2.net 14580\n\n");
 	exit(0);
 }
 
@@ -423,24 +386,40 @@ int main(int argc, char *argv[])
 {
 	int listen_fd;
 	int llen;
+	int i = 1;
+	int got_one = 0;
+	do {
+		got_one = 1;
+		if (argc - i == 0)
+			break;
+		if (strcmp(argv[i], "-h") == 0)
+			usage();
+		else if (strcmp(argv[i], "-d") == 0)
+			debug = 1;
+		else
+			got_one = 0;
+		if (got_one)
+			i++;
+	} while (got_one);
 
-	signal(SIGCHLD, SIG_IGN);
-	if (argc != 5) {
+	if (argc - i == 0) {
 		laddr = "0.0.0.0";
 		lport = "14590";
 		raddr = "asia.aprs2.net";
 		rport = "14580";
-	} else {
-		laddr = argv[1];
-		lport = argv[2];
-		raddr = argv[3];
-		rport = argv[4];
-	}
-	printf("aprsrelay %s:%s -> %s:%s\n", laddr, lport, raddr, rport);
+	} else if (argc - i == 4) {
+		laddr = argv[i];
+		lport = argv[i + 1];
+		raddr = argv[i + 2];
+		rport = argv[i + 3];
+	} else
+		usage();
 
-#ifndef DEBUG
-	daemon_init("aprsrelay", LOG_DAEMON);
-#endif
+	printf("aprsrcmdtcp %s:%s -> %s:%s\n", laddr, lport, raddr, rport);
+	signal(SIGCHLD, SIG_IGN);
+
+	if (debug == 0)
+		daemon_init("aprscmdtcp", LOG_DAEMON);
 
 	listen_fd = Tcp_listen(laddr, lport, (socklen_t *) & llen);
 
@@ -449,16 +428,16 @@ int main(int argc, char *argv[])
 		int slen;
 		slen = sizeof(sa);
 		c_fd = Accept(listen_fd, &sa, (socklen_t *) & slen);
-#ifdef DEBUG
-		mysql = connectdb();
-		Process(c_fd);
-#else
-		if (Fork() == 0) {
-			Close(listen_fd);
+		if (debug) {
 			mysql = connectdb();
 			Process(c_fd);
+		} else {
+			if (Fork() == 0) {
+				Close(listen_fd);
+				mysql = connectdb();
+				Process(c_fd);
+			}
 		}
-#endif
 		Close(c_fd);
 	}
 }

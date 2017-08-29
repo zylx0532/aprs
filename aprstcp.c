@@ -11,6 +11,7 @@ aprstcp [ -d ] local_ip local_port remote_ip remote_port
         	106.15.35.48  14580 (欧讯服务器)
         	如果SSID中有-13，发给
         	114.55.54.60  14580（lewei50.com）
+
 	aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
 
 */

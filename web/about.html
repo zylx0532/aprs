@@ -24,16 +24,19 @@ aprsudp [ -d ]
 
 <h3>2. aprstcp & aprscmdtcp</h3>
 <pre>
+aprstcp [ -d ] local_ip local_port remote_ip remote_port
 功能：
-从 14580 tcp端口接收数据
-使用TCP转发给china.aprs2.net
-使用UDP转发给以下端口
-127.0.0.1 14582
-127.0.0.1 14583
-120.25.100.30 14580
-112.74.218.112 14580 (OuXun Server)
+        从 14580 tcp端口接收数据
+        使用TCP转发给asia.aprs2.net
+        使用UDP转发给以下端口
+                127.0.0.1 14582
+                127.0.0.1 14583
+                120.25.100.30 14580 (aprs.helloce.net)
+                106.15.35.48  14580 (欧讯服务器)
+                如果SSID中有-13，发给
+                114.55.54.60  14580（lewei50.com）
 
-aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
+        aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
 </pre>
 
 <h3>3. udptoaprs</h3>

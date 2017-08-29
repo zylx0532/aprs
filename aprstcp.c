@@ -1,12 +1,18 @@
 /* aprstcp v1.0 by  james@ustc.edu.cn 2015.12.19
 
-   replay 14580 tcp aprs packet to "asia.aprs2.net"
-   send all packets to udp
-	127.0.0.1 14582
-	127.0.0.1 14583
-	120.25.100.30 14580
-	106.15.35.48 14580
-   send packets with "-13" to 114.55.54.60 14580
+aprstcp [ -d ] local_ip local_port remote_ip remote_port
+功能：
+	从 14580 tcp端口接收数据
+	使用TCP转发给asia.aprs2.net
+	使用UDP转发给以下端口
+		127.0.0.1 14582
+		127.0.0.1 14583
+        	120.25.100.30 14580 (aprs.helloce.net)
+        	106.15.35.48  14580 (欧讯服务器)
+        	如果SSID中有-13，发给
+        	114.55.54.60  14580（lewei50.com）
+	aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
+
 */
 
 #include <stdio.h>
@@ -28,7 +34,7 @@
 
 #define PORT 14580
 
-// #define DEBUG 1
+int debug = 0;
 
 char *laddr, *lport, *raddr, *rport;
 unsigned long fwd, rfwd;
@@ -62,32 +68,7 @@ void PrintStats(void)
 
 }
 
-void sendudp(char *buf, int len, char *host, int port)
-{
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-	int l;
-#ifdef DEBUG
-	fprintf(stderr, "send to %s,", host);
-#endif
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		fprintf(stderr, "socket error");
-		return;
-	}
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(port);
-	if (inet_aton(host, &si_other.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		close(s);
-		return;
-	}
-	l = sendto(s, buf, len, 0, (const struct sockaddr *)&si_other, slen);
-#ifdef DEBUG
-	fprintf(stderr, "%d\n", l);
-#endif
-	close(s);
-}
+#include "sendudp.c"
 
 void relayaprs(char *buf, int len)
 {
@@ -151,13 +132,9 @@ void Process(int c_fd)
 				PrintStats();
 				exit(0);
 			}
-			if (strstr(buffer, "# javAPRSSrvr") && strstr(buffer, "T2CHINA 221.231.138.178:14580")) {
-				static time_t lastkeep = 0;
-				time_t curt = time(NULL);
-				if ((lastkeep != 0) && (curt - lastkeep < 60 * 10))
-					continue;
-				lastkeep = curt;
-			}
+			buffer[n] = 0;
+			if (debug)
+				fprintf(stderr, "from server: %s", buffer);
 			Write(c_fd, buffer, n);
 			rfwd += n;
 		}
@@ -170,6 +147,8 @@ void Process(int c_fd)
 				exit(0);
 			}
 			buffer[lastread + n] = 0;
+			if (debug)
+				fprintf(stderr, "from client: %s", buffer);
 			Write(r_fd, buffer + lastread, n);
 			fwd += n;
 			char *p, *s;
@@ -198,7 +177,8 @@ void Process(int c_fd)
 void usage()
 {
 	printf("\naprstcp v1.0 - aprs relay by james@ustc.edu.cn\n");
-	printf("\naprstcp x.x.x.x 14580 asia.aprs2.net 14580\n\n");
+	printf("aprstcp [ -d ] [ local_ip local_port remote_ip remote_port ]\n");
+	printf("default is: aprstcp 0.0.0.0 14580 asia.aprs2.net 14580\n\n");
 	exit(0);
 }
 
@@ -206,24 +186,37 @@ int main(int argc, char *argv[])
 {
 	int listen_fd;
 	int llen;
+	int i = 1;
+	int got_one = 0;
+	do {
+		got_one = 1;
+		if (argc - i == 0)
+			break;
+		if (strcmp(argv[i], "-h") == 0)
+			usage();
+		else if (strcmp(argv[i], "-d") == 0)
+			debug = 1;
+		else
+			got_one = 1;
+	} while (got_one);
 
-	signal(SIGCHLD, SIG_IGN);
-	if (argc != 5) {
+	if (argc - i == 0) {
 		laddr = "0.0.0.0";
 		lport = "14580";
 		raddr = "asia.aprs2.net";
 		rport = "14580";
-	} else {
-		laddr = argv[1];
-		lport = argv[2];
-		raddr = argv[3];
-		rport = argv[4];
-	}
-	printf("aprsrelay %s:%s -> %s:%s\n", laddr, lport, raddr, rport);
+	} else if (argc - i == 4) {
+		laddr = argv[i];
+		lport = argv[i + 1];
+		raddr = argv[i + 2];
+		rport = argv[i + 3];
+	} else
+		usage();
+	printf("aprstcp %s:%s -> %s:%s\n", laddr, lport, raddr, rport);
+	signal(SIGCHLD, SIG_IGN);
 
-#ifndef DEBUG
-	daemon_init("aprsrelay", LOG_DAEMON);
-#endif
+	if (debug == 0)
+		daemon_init("aprstcp", LOG_DAEMON);
 
 	listen_fd = Tcp_listen(laddr, lport, (socklen_t *) & llen);
 
@@ -232,14 +225,14 @@ int main(int argc, char *argv[])
 		int slen;
 		slen = sizeof(sa);
 		c_fd = Accept(listen_fd, &sa, (socklen_t *) & slen);
-#ifdef DEBUG
-		Process(c_fd);
-#else
-		if (Fork() == 0) {
-			Close(listen_fd);
+		if (debug)
 			Process(c_fd);
+		else {
+			if (Fork() == 0) {
+				Close(listen_fd);
+				Process(c_fd);
+			}
 		}
-#endif
 		Close(c_fd);
 	}
 }

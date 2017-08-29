@@ -23,38 +23,13 @@
 
 #define MAXLEN 16384
 
-// #define DEBUG 1
-
 #define PORT 14580
+
+int debug = 0;
 
 int r_fd;
 
-void sendudp(char *buf, int len, char *host, int port)
-{
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-	int l;
-#ifdef DEBUG
-	fprintf(stderr, "send to %s,", host);
-#endif
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		fprintf(stderr, "socket error");
-		return;
-	}
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(port);
-	if (inet_aton(host, &si_other.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		close(s);
-		return;
-	}
-	l = sendto(s, buf, len, 0, (const struct sockaddr *)&si_other, slen);
-#ifdef DEBUG
-	fprintf(stderr, "%d\n", l);
-#endif
-	close(s);
-}
+#include "sendudp.c"
 
 void relayaprs(char *buf, int len)
 {

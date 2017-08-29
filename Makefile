@@ -6,6 +6,8 @@ aprstcp: aprstcp.c sendudp.c sock.h
 	gcc -g -o aprstcp aprstcp.c	 -Wall  
 aprscmdtcp: aprscmdtcp.c sendudp.c sock.h
 	gcc -g -o aprscmdtcp aprscmdtcp.c	 -Wall  -lmysqlclient -L/usr/lib64/mysql/
+udptoaprs: udptoaprs.c passcode.c
+	gcc -o udptoaprs udptoaprs.c -Wall
 
 aprs.fi.toudp: aprs.fi.toudp.c passcode.c
 	gcc -o aprs.fi.toudp aprs.fi.toudp.c -Wall
@@ -16,8 +18,6 @@ local.toaprs: local.toaprs.c passcode.c
 
 gt02: gt02.c
 	gcc -g -o gt02 gt02.c	 -Wall -lm
-udptoaprs: udptoaprs.c passcode.c
-	gcc -o udptoaprs udptoaprs.c -Wall
 udptolocal: udptolocal.c passcode.c
 	gcc -o udptolocal udptolocal.c -Wall
 udptomysql: udptomysql.c db.h tomysql.c

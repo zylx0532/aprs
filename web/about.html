@@ -41,12 +41,13 @@ aprstcp [ -d ] local_ip local_port remote_ip remote_port
 
 <h3>3. udptoaprs</h3>
 <pre>
-命令行： udptoaprs 呼号
+
+命令行： udptoaprs [ -d ] 呼号
 参数含义：呼号，用来连接china.aprs2.net服务器
  
 功能：
-从 127.0.0.1 14581 UDP端口接收数据
-使用TCP转发给china.aprs2.net
+	从 127.0.0.1 14581 UDP端口接收数据
+	使用TCP转发给china.aprs2.net
 注意：BA BD BG BH BR BI BY VR +数字 的才转发
 </pre>
  

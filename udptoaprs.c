@@ -1,3 +1,13 @@
+/*
+udptoaprs [ -d ] 呼号
+参数含义：呼号，用来连接china.aprs2.net服务器
+ 
+功能：
+	从 127.0.0.1 14581 UDP端口接收数据
+	使用TCP转发给china.aprs2.net
+	注意：BA BD BG BH BR BI BY VR +数字 的才转发
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,7 +23,7 @@
 #include <ctype.h>
 #include "sock.h"
 
-// #define DEBUG 1
+int debug = 0;
 
 #define MAXLEN 16384
 
@@ -83,9 +93,8 @@ void Process(int u_fd, int r_fd)
 				exit(0);
 			}
 			buff[n] = 0;
-#ifdef DEBUG
-			fprintf(stderr, "S: %s", buff);
-#endif
+			if (debug)
+				fprintf(stderr, "S: %s", buff);
 		}
 		if (FD_ISSET(u_fd, &rset)) {
 			n = recv(u_fd, buff, MAXLEN, 0);
@@ -96,24 +105,18 @@ void Process(int u_fd, int r_fd)
 			if (n == 0)
 				continue;
 			buff[n] = 0;
-
-#ifdef DEBUG
-			fprintf(stderr, "C: %s", buff);
-#endif
+			if (debug)
+				fprintf(stderr, "C: %s", buff);
 			strcpy(call, buff);
 			char *p;
 			p = strchr(call, '>');
 			if (p)
 				*p = 0;
-#ifdef DEBUG
 			if (checkcall(call) == 0) {
-				fprintf(stderr, "!!  %s is not a china call!!!\n", call);
+				if (debug)
+					fprintf(stderr, "!!  %s is not a china call!!!\n", call);
 				continue;
 			}
-#else
-			if (checkcall(call) == 0)
-				continue;
-#endif
 			Write(r_fd, buff, n);
 		}
 	}
@@ -121,42 +124,60 @@ void Process(int u_fd, int r_fd)
 
 #include "passcode.c"
 
+void usage()
+{
+	printf("\nudptoaprs [ -d ] your_call_sign\n");
+	exit(0);
+}
+
 int main(int argc, char *argv[])
 {
 	int r_fd, u_fd;
 	int llen;
 	char buf[MAXLEN];
-
-	signal(SIGCHLD, SIG_IGN);
-
-	if (argc != 2) {
-		fprintf(stderr, "usage:  udptoaprs your_call_sign\n");
-		exit(0);
-	}
-#ifndef DEBUG
-	daemon_init("udptoaprs", LOG_DAEMON);
-	while (1) {
-		int pid;
-		pid = fork();
-		if (pid == 0)	// i am child, will do the job
+	int i = 1;
+	int got_one = 0;
+	do {
+		got_one = 1;
+		if (argc - i == 0)
 			break;
-		else if (pid == -1)	// error
-			exit(0);
+		if (strcmp(argv[i], "-h") == 0)
+			usage();
+		else if (strcmp(argv[i], "-d") == 0)
+			debug = 1;
 		else
-			wait(NULL);	// i am parent, wait for child
-		sleep(2);	// if child exit, wait 2 second, and rerun
+			got_one = 0;
+		if (got_one)
+			i++;
+	} while (got_one);
+
+	if (argc - i != 1)
+		usage();
+	signal(SIGCHLD, SIG_IGN);
+	if (debug == 0) {
+		daemon_init("udptoaprs", LOG_DAEMON);
+		while (1) {
+			int pid;
+			pid = fork();
+			if (pid == 0)	// i am child, will do the job
+				break;
+			else if (pid == -1)	// error
+				exit(0);
+			else
+				wait(NULL);	// i am parent, wait for child
+			sleep(2);	// if child exit, wait 2 second, and rerun
+		}
 	}
-#endif
 	err_msg("starting\n");
 	u_fd = Udp_server("127.0.0.1", "14581", (socklen_t *) & llen);
 
 	r_fd = Tcp_connect("asia.aprs2.net", "14580");
-	snprintf(buf, MAXLEN, "user %s pass %d vers udptoaprs 1.0 filter r/31.83/117.29/1\r\n", argv[1], passcode(argv[1]));
+	snprintf(buf, MAXLEN, "user %s pass %d vers udptoaprs 1.0 filter r/31.83/117.29/1\r\n", argv[i], passcode(argv[i]));
 	Write(r_fd, buf, strlen(buf));
-#ifdef DEBUG
-	fprintf(stderr, "C: %s", buf);
-	fprintf(stderr, "u_fd=%d, r_fd=%d\n", u_fd, r_fd);
-#endif
+	if (debug) {
+		fprintf(stderr, "C: %s", buf);
+		fprintf(stderr, "u_fd=%d, r_fd=%d\n", u_fd, r_fd);
+	}
 	Process(u_fd, r_fd);
 	return 0;
 }

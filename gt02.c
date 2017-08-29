@@ -24,7 +24,7 @@
 
 #define MAXLEN 16384
 
-// #define DEBUG 1
+int debug = 0;
 
 void dump_pkt(unsigned char *buf, int len)
 {
@@ -38,32 +38,7 @@ void dump_pkt(unsigned char *buf, int len)
 	fprintf(stderr, "\n");
 }
 
-void sendudp(char *buf, int len, char *host, int port)
-{
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-	int l;
-#ifdef DEBUG
-	fprintf(stderr, "send to %s,", host);
-#endif
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		fprintf(stderr, "socket error");
-		return;
-	}
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(port);
-	if (inet_aton(host, &si_other.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		close(s);
-		return;
-	}
-	l = sendto(s, buf, len, 0, (const struct sockaddr *)&si_other, slen);
-#ifdef DEBUG
-	fprintf(stderr, "%d\n", l);
-#endif
-	close(s);
-}
+#include "sendudp.c"
 
 char *imei_call(unsigned char *imei)
 {				// imei 8 bytes
@@ -75,14 +50,12 @@ char *imei_call(unsigned char *imei)
 	for (i = 0; i < 8; i++) {
 		sprintf(call + 2 * i, "%02X", *(imei + i));
 	}
-#ifdef DEBUG
-	fprintf(stderr, "%s\n", call);
-#endif
+	if (debug)
+		fprintf(stderr, "%s\n", call);
 	fp = fopen("/usr/src/aprs/imei_call.txt", "r");	// IMEI 0102030405060708 BG?-YYY
 	if (fp == NULL) {
-#ifdef DEBUG
-		fprintf(stderr, "open imei_call.txt error\n");
-#endif
+		if (debug)
+			fprintf(stderr, "open imei_call.txt error\n");
 	} else {
 		while (fgets(ibuf, MAXLEN, fp)) {
 			if (strlen(ibuf) < 8)
@@ -109,9 +82,8 @@ void processaprs(unsigned char *buf, int len)
 	time_t now_tm;
 	now_tm = time(NULL);
 	if (now_tm - last_tm < 5) {
-#ifdef DEBUG
-		fprintf(stderr, "packet interval < 5, skip\n");
-#endif
+		if (debug)
+			fprintf(stderr, "packet interval < 5, skip\n");
 		return;
 	}
 	last_tm = now_tm;
@@ -124,24 +96,21 @@ void processaprs(unsigned char *buf, int len)
 	float l;
 	l = ((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25];
 	l = l / 30000;
-#ifdef DEBUG
-	fprintf(stderr, "%f\n", l);
-#endif
+	if (debug)
+		fprintf(stderr, "%f\n", l);
 	n += sprintf(abuf + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 2) == 0 ? 'S' : 'N');
 	l = ((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29];
 	l = l / 30000;
-#ifdef DEBUG
-	fprintf(stderr, "%f, %d\n", l, (int)(l / 60));
-#endif
+	if (debug)
+		fprintf(stderr, "%f, %d\n", l, (int)(l / 60));
 	n += sprintf(abuf + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 4) == 0 ? 'W' : 'E');
 	n += sprintf(abuf + n, "%03d/%03d", buf[31] * 256 + buf[32], buf[30]);
 	n += sprintf(abuf + n, "IMEI:");
 	for (i = 6; i < 8; i++)
 		n += sprintf(abuf + n, "%02X", *(buf + 5 + i));
 	n += sprintf(abuf + n, "\r\n");
-#ifdef DEBUG
-	fprintf(stderr, "APRS: %s\n", abuf);
-#endif
+	if (debug)
+		fprintf(stderr, "APRS: %s\n", abuf);
 	if (strstr(abuf, "GT2UN-9") == 0)	// imei_call
 		sendudp(abuf, n, "127.0.0.1", 14580);
 	else {
@@ -171,9 +140,8 @@ void Process(int c_fd)
 			exit(0);
 		}
 		n += Readn(c_fd, buffer + 3, buffer[2] + 2);
-#ifdef DEBUG
-		dump_pkt(buffer, n);
-#endif
+		if (debug)
+			dump_pkt(buffer, n);
 		buffer[n] = 0;
 		if ((n >= 15) && (buffer[0] == 0x68) && (buffer[1] == 0x68) && (buffer[15] == 0x1a)) {	// heart beat 
 			buffer[0] = 0x54;
@@ -182,24 +150,22 @@ void Process(int c_fd)
 			buffer[3] = 0x0d;
 			buffer[4] = 0x0a;
 			Write(c_fd, buffer, 5);
-#ifdef DEBUG
-			fprintf(stderr, "heart beat packet\n");
-			fprintf(stderr, "send back heart beat\n");
-#endif
+			if (debug) {
+				fprintf(stderr, "heart beat packet\n");
+				fprintf(stderr, "send back heart beat\n");
+			}
 			continue;
 		}
 		if ((n == 42) && (buffer[0] == 0x68) && (buffer[1] == 0x68) && (buffer[2] == 0x25) &&
 //                      (buffer[3]==0x0) && (buffer[4]==0x0) && 
 		    (buffer[15] == 0x10)) {	// gps status 
-#ifdef DEBUG
-			fprintf(stderr, "GPS status packet\n");
-#endif
+			if (debug)
+				fprintf(stderr, "GPS status packet\n");
 			processaprs(buffer, n);
 			continue;
 		}
-#ifdef DEBUG
-		fprintf(stderr, "unknow packer\n");
-#endif
+		if (debug)
+			fprintf(stderr, "unknow packet\n");
 	}
 }
 
@@ -215,12 +181,13 @@ int main(int argc, char *argv[])
 	int listen_fd;
 	int c_fd;
 	int llen;
+	if(argc > 1) 
+		debug = 1;
 
 	signal(SIGCHLD, SIG_IGN);
 
-#ifndef DEBUG
-	daemon_init("gt02", LOG_DAEMON);
-#endif
+	if (debug == 0)
+		daemon_init("gt02", LOG_DAEMON);
 
 	listen_fd = Tcp_listen("0.0.0.0", "8821", (socklen_t *) & llen);
 
@@ -229,15 +196,15 @@ int main(int argc, char *argv[])
 		int slen;
 		slen = sizeof(sa);
 		c_fd = Accept(listen_fd, &sa, (socklen_t *) & slen);
-#ifdef DEBUG
-		fprintf(stderr, "get connection:\n");
-		Process(c_fd);
-#else
-		if (Fork() == 0) {
-			Close(listen_fd);
+		if (debug) {
+			fprintf(stderr, "get connection:\n");
 			Process(c_fd);
+		} else {
+			if (Fork() == 0) {
+				Close(listen_fd);
+				Process(c_fd);
+			}
 		}
-#endif
 		Close(c_fd);
 	}
 }

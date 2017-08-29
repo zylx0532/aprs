@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 		else if (strcmp(argv[i], "-d") == 0)
 			debug = 1;
 		else
-			got_one = 1;
+			got_one = 0;
 	} while (got_one);
 
 	if (argc - i == 0) {

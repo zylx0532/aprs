@@ -5,7 +5,7 @@ void sendudp(char *buf, int len, char *host, int port)
 	int l;
 
 	if (debug)
-		fprintf(stderr, "send to %s,", host);
+		fprintf(stderr, "send to %s, ret=", host);
 	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		fprintf(stderr, "socket error");
 		return;

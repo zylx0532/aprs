@@ -1,5 +1,4 @@
 /* aprsudp [ -d ]
-
 功能：
 	从 14580 UDP端口接收数据
 	使用UDP转发给以下端口
@@ -60,7 +59,7 @@ void insertU(char *buf, int *len)
 void relayaprs(char *buf, int len)
 {
 	if (debug)
-		fprintf(stderr, "recv from UDP: %s\n", buf);
+		fprintf(stderr, "recv len=%d from UDP: %s", len, buf);
 	sendudp(buf, len, "127.0.0.1", 14581);	// forward to asia.aprs2.net
 	sendudp(buf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
 	sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server

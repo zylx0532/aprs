@@ -198,6 +198,8 @@ int main(int argc, char *argv[])
 			debug = 1;
 		else
 			got_one = 0;
+		if (got_one)
+			i++;
 	} while (got_one);
 
 	if (argc - i == 0) {

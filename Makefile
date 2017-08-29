@@ -1,4 +1,4 @@
-all: aprsudp aprstcp aprscmdtcp udptoaprs udptomysql udptolog udptolocal aprs.fi.toudp local.toudp local.toaprs gt02 aprstomysql udptomysql2
+all: aprsudp aprstcp aprscmdtcp udptoaprs udptomysql udptolog udptolocal aprstomysql aprs.fi.toudp local.toudp local.toaprs gt02 udptomysql2
 
 aprsudp: aprsudp.c sendudp.c
 	gcc -g -o aprsudp aprsudp.c	 -Wall
@@ -8,6 +8,8 @@ aprscmdtcp: aprscmdtcp.c sendudp.c sock.h
 	gcc -g -o aprscmdtcp aprscmdtcp.c	 -Wall  -lmysqlclient -L/usr/lib64/mysql/
 udptoaprs: udptoaprs.c passcode.c
 	gcc -o udptoaprs udptoaprs.c -Wall
+aprstomysql: aprstomysql.c db.h tomysql.c sock.h sendudp.c
+	gcc -g -o aprstomysql aprstomysql.c -Wall -lmysqlclient -L/usr/lib64/mysql/
 
 
 udptolocal: udptolocal.c passcode.c sock.h
@@ -24,8 +26,6 @@ gt02: gt02.c
 	gcc -g -o gt02 gt02.c	 -Wall -lm
 udptomysql: udptomysql.c db.h tomysql.c
 	gcc -g -o udptomysql udptomysql.c -Wall -lmysqlclient -L/usr/lib64/mysql/
-aprstomysql: aprstomysql.c db.h tomysql.c
-	gcc -g -o aprstomysql aprstomysql.c -Wall -lmysqlclient -L/usr/lib64/mysql/
 
 udptomysql2: udptomysql2.c db.h tomysql2.c
 	gcc -g -o udptomysql2 udptomysql2.c -Wall -lmysqlclient -L/usr/lib64/mysql/

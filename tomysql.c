@@ -117,9 +117,8 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 	end += mysql_real_escape_string(mysql, end, raw, strlen(raw));
 	end = my_stpcpy(end, "')");
 	*end = 0;
-#ifdef DEBUG
-	err_msg("%s\n", sqlbuf);
-#endif
+	if (debug)
+		err_msg("%s\n", sqlbuf);
 	if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
 		err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 	}
@@ -142,9 +141,8 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 	end += mysql_real_escape_string(mysql, end, path, strlen(path));
 	end = my_stpcpy(end, "')");
 	*end = 0;
-#ifdef DEBUG
-	err_msg("%s\n", sqlbuf);
-#endif
+	if (debug)
+		err_msg("%s\n", sqlbuf);
 	if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
 		err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 	}
@@ -153,9 +151,8 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 	end += mysql_real_escape_string(mysql, end, call, strlen(call));
 	end = my_stpcpy(end, "', 1) ON DUPLICATE KEY UPDATE pkts=pkts+1");
 	*end = 0;
-#ifdef DEBUG
-	err_msg("%s\n", sqlbuf);
-#endif
+	if (debug)
+		err_msg("%s\n", sqlbuf);
 	mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf));
 
 	end = my_stpcpy(sqlbuf, "INSERT INTO packetstats VALUES(curdate(),1) ON DUPLICATE KEY UPDATE packets=packets+1");
@@ -187,9 +184,8 @@ void ToMysql(char *buf, int len)
 		return;
 	*p = 0;
 	if (checkcall(call) == 0) {
-#ifdef DEBUG
-		err_msg("skipp call: %s\n", call);
-#endif
+		if (debug)
+			err_msg("skipp call: %s\n", call);
 		return;
 	}
 	s = p + 1;

@@ -19,7 +19,7 @@
 
 #include "db.h"
 
-#include "tomysql.c"
+#include "tomysql2.c"
 
 void Process(int u_fd)
 {

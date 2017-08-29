@@ -1,3 +1,9 @@
+/*
+功能：
+	从 127.0.0.1 14582 UDP端口接收数据
+	在 /var/log/aprs目录下记录收到的APRS数据包
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -14,56 +20,30 @@
 #include <signal.h>
 #include <ctype.h>
 
+#include "sock.h"
 
 #define MAXLEN 16384
 
 #define PORT 14582
 
-int daemon_proc = 0;
+int debug = 0;
 
-void diep(char *s)
-{
-	if(daemon_proc)
-		syslog(LOG_CRIT,"%s: %s\n",s, strerror(errno));
-	else
-		perror(s);
-	exit(1);
-}
-
-void daemon_init(void)
-{	int i;
-        pid_t   pid;
-        if ( (pid = fork()) != 0)
-                exit(0);                        /* parent terminates */
-        /* 41st child continues */
-        setsid();                               /* become session leader */
-        signal(SIGHUP, SIG_IGN);
-        if ( (pid = fork()) != 0)
-                exit(0);                        /* 1st child terminates */
-        chdir("/");                             /* change working directory */
-        umask(0);                               /* clear our file mode creation mask */
-        for (i = 0; i < 3; i++)
-                close(i);
-	daemon_proc = 1;
-	openlog("aprsudp",LOG_PID,LOG_DAEMON);
-}
-
-int main(void)
+int main(int argc, char*argv[])
 {
 	struct sockaddr_in si_me, si_other;
 	int s, slen=sizeof(si_other);
-#ifndef DEBUG
-	daemon_init();
-#endif
+	if(argc>=1) debug=1;
+	if(debug==0)
+		daemon_init("udptolog",LOG_DAEMON);
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
-		diep("socket");
+		err_sys("socket");
 
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(PORT);
 	si_me.sin_addr.s_addr = inet_addr("127.0.0.1");
 	if (bind(s, (const struct sockaddr *)&si_me, sizeof(si_me))==-1)
-		diep("bind");
+		err_sys("bind");
 
 	while(1) {
 		char buf[MAXLEN];
@@ -91,6 +71,8 @@ int main(void)
 		if(buf[len-1]=='\r') 
 			len--; 
 		buf[len]=0; 
+		if(debug)
+			fprintf(stderr,"recv %s",buf);
         	time(&timep);
         	p = localtime(&timep); 
         	snprintf(fname,200,"/var/log/aprs/%d%02d%02d",(1900+p->tm_year),(1+p->tm_mon), p->tm_mday);

@@ -1,3 +1,9 @@
+/*
+功能：
+	从 127.0.0.1 14583 UDP端口接收数据
+	在mysql数据库中记录收到的APRS数据包
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,7 +19,7 @@
 #include <ctype.h>
 #include "sock.h"
 
-// #define DEBUG 1
+int debug = 0;
 
 #define MAXLEN 16384
 
@@ -35,9 +41,8 @@ void Process(int u_fd)
 		if (n == 0)
 			continue;
 		buff[n] = 0;
-#ifdef DEBUG
-		err_msg("C: %s", buff);
-#endif
+		if (debug)
+			err_msg("C: %s", buff);
 		ToMysql(buff, n);
 	}
 }
@@ -49,29 +54,27 @@ int main(int argc, char *argv[])
 
 	signal(SIGCHLD, SIG_IGN);
 
-	if (argc != 1)
-		err_quit("usage:  udptomysql\n");
+	if (argc > 1)
+		debug = 1;
 
-#ifndef DEBUG
-	daemon_init("udptomysql", LOG_DAEMON);
-	while (1) {
-		int pid;
-		pid = fork();
-		if (pid == 0)	// i am child, will do the job
-			break;
-		else if (pid == -1)	// error
-			exit(0);
-		else
-			wait(NULL);	// i am parent, wait for child
-		sleep(2);	// if child exit, wait 2 second, and rerun
+	if (debug == 0) {
+		daemon_init("udptomysql", LOG_DAEMON);
+		while (1) {
+			int pid;
+			pid = fork();
+			if (pid == 0)	// i am child, will do the job
+				break;
+			else if (pid == -1)	// error
+				exit(0);
+			else
+				wait(NULL);	// i am parent, wait for child
+			sleep(2);	// if child exit, wait 2 second, and rerun
+		}
 	}
-#endif
 	err_msg("starting\n");
 	u_fd = Udp_server("127.0.0.1", "14583", (socklen_t *) & llen);
-
-#ifdef DEBUG
-	err_msg("u_fd=%d\n", u_fd);
-#endif
+	if (debug)
+		err_msg("u_fd=%d\n", u_fd);
 	mysql = connectdb();
 	Process(u_fd);
 	return 0;

@@ -2,6 +2,7 @@
 
 程序源码请见 <a href=https://github.com/bg6cq/aprs target=_blank>https://github.com/bg6cq/aprs</a> 有问题请联系james@ustc.edu.cn<p>
 <a href=INSTALL.html>这里</a>有个从头安装一台独立aprs服务器的过程。<p>
+<a href=INSTALL2.html>这里</a>有个从头安装一台与202.141.176.2类似服务器的过程。<p>
 <img src=aprs_6cq.png>
 <br>
 
@@ -158,6 +159,7 @@ CREATE TABLE `lastpacket` (
   `table` char(1) NOT NULL,
   `symbol` char(1) NOT NULL,
   `msg` varchar(200) NOT NULL,
+  `path` varchar(200) default "",
   PRIMARY KEY (`call`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 

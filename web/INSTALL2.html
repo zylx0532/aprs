@@ -1,6 +1,6 @@
 <h3>安装记录</h3>
 
-这里安装的是一个完全独立的aprs服务器, 如果安装一个跟202.141.176.2一样的，请参考<a href=INSTALL2.html>这里</a>
+这里安装的是一个跟202.141.176.2一样的服务器
 
 <pre>
 1. 下载CentOS-6.7-x86_64-netinstall.iso，默认安装，时区设置为Asia/Shanghai
@@ -19,42 +19,27 @@ SELINUX=disabled
 运行:
 yum install httpd php php-mysql mysql-server git screen gcc mysql-devel telnet ntpdate
 
-（http://he.fi/aprsc/INSTALLING.html）
-curl -o /etc/yum.repos.d/aprsc.repo http://he.fi/aprsc/down/aprsc-centos.repo
-yum install aprsc
-
 5. 修改包过滤防火墙配置文件
 运行 vi /etc/sysconfig/iptables 修改以下内容(注意下面22端口的是允许远程登录的IP，请根据自己情况修改)
 -A INPUT -m tcp -p tcp --dport 22 -j ACCEPT -s 202.38.64.0/24
 -A INPUT -m tcp -p tcp --dport 22 -j ACCEPT -s 211.86.158.0/24
 -A INPUT -m tcp -p tcp --dport 80 -j ACCEPT
--A INPUT -m tcp -p tcp --dport 14501 -j ACCEPT
 -A INPUT -m tcp -p tcp --dport 14580 -j ACCEPT
 -A INPUT -m udp -p udp --dport 14580 -j ACCEPT
 
-6. 修改aprsc配置文件
-vi /etc/sysconfig/aprsc
-STARTAPRSC="yes"
-
-vi /opt/aprsc/etc/aprsc.conf
-修改ServerID，管理员mail
-下面两行前加#注释：
-#Listen "UDP submit"
-#MagicBadness   42.7
-
-7. 下载源码、编译
+6. 下载源码、编译
 cd /usr/src
 git clone https://github.com/bg6cq/aprs
 
 cd /usr/src/aprs
 make
 
-8. 修改web文件
+7. 修改web文件
 cd /var/www/
 mv html html.old
 ln -s /usr/src/aprs/web html
 
-9. 启动数据库，创建表
+8. 启动数据库，创建表
 vi /etc/my.cnf
 
 在[mysqld]下添加
@@ -112,25 +97,27 @@ CREATE TABLE `aprspackethourcount` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
-10. 设置开机启动
+9. 设置开机启动
 执行
 chkconfig mysqld on
 chkconfig httpd on
-chkconfig aprsc on
 
 vi /etc/rc.local 
 增加
-/usr/src/aprs/udptomysql
-/usr/src/aprs/local.toudp 127.0.0.1 BG6CQ
+/usr/src/aprs/aprsudp
+/usr/src/aprs/aprstcp
+/usr/src/aprs/udptoaprs BG6CQ
+/usr/src/aprs/udptolog
+/usr/src/aprs/udptomysql 
 
-(上面的BG6CQ可以用自己的呼号，是登录127.0.0.1 14580取数据的)
+(上面的BG6CQ可以用自己的呼号，是登录asia.aprs2.net 14580发送数据的)
 
-11. 设置服务器自动对时
+10. 设置服务器自动对时
 执行crontab -e
 0 * * * * /usr/sbin/ntpdate 202.38.64.7 >/dev/null 2>/dev/null
 请根据实际情况修改ntp服务器ip
 
-12. 重启
+11. 重启
 reboot 重启
 
 </pre>
@@ -138,14 +125,15 @@ reboot 重启
 <h3>使用</h3>
 <pre>
 启动后 
-http://x.x.x.x:14501/可以看到aprsc状态
 http://x.x.x.x/可以看到地图
 tcp 14580可以接收标准aprs客户端连接
 
 注：
 各程序功能：
-1. aprsc aprs服务端
-2. udptomysql 从UDP接收数据包，存到mysql数据库
-3. local.toudp 连接到127.0.0.1:14580，获取呼号数据发给udptomysql
+1. aprsudp 从UDP接收数据包，转发
+2. aprstcp 从TCP接收数据包，转发
+3. udptoaprs BG6CQ，将UDP收到的数据包转发给 asia.aprs2.net
+4. udptolog 从UDP接收数据包，存到日志文件 
+5. udptomysql 从UDP接收数据包，存到mysql数据库
 </pre>
 

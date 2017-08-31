@@ -1,0 +1,19 @@
+aprs.fi.toudp
+aprscmdtcp
+aprstcp
+aprstomysql
+aprsudp
+gt02
+#       imei_call.txt
+local.toaprs
+local.toudp
+tmp/
+tool/
+udptoaprs
+udptolocal
+udptolog
+udptomysql
+udptomysql2
+web/il.php
+web/img/tmp/
+

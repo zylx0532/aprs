@@ -32,7 +32,7 @@ int main(int argc, char*argv[])
 {
 	struct sockaddr_in si_me, si_other;
 	int s, slen=sizeof(si_other);
-	if(argc>=1) debug=1;
+	if(argc>1) debug=1;
 	if(debug==0)
 		daemon_init("udptolog",LOG_DAEMON);
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)

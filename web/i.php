@@ -263,6 +263,16 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
                 $m = $m."<b>功率".$pwr."瓦 天线高度".$h."m 增益".$g."dB</b><br>";
                 $msg = substr($msg,7);
 	}
+	if( (strlen($msg)>=9) &&
+		strstr($msg,"MHz/A=") )       // 430.100MHz/A=000392
+	{	
+		$hz = substr($msg,0,strpos($msg,"MHz/A="));
+		$msg = strstr($msg,"MHz/A=");
+		$msg = substr($msg,4);
+		$alt=number_format(substr($msg,3,6)*0.3048,1);
+		$m = $m."<b> 海拔".$alt."m</b><br>";
+		$msg = $hz."MHz ".substr($msg,9);
+	}
 		
 	if(strlen($msg)>0)
 	$m = $m."</font><font color=green face=微软雅黑 size=2>".addcslashes(htmlspecialchars($msg),"\\\r\n'\"")."</font><br>";

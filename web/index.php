@@ -275,7 +275,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 	}
 		
 	if(strlen($msg)>0)
-	$m = $m."</font><font color=green face=微软雅黑 size=2>".addcslashes(htmlspecialchars($msg),"\\\r\n'\"")."</font><br>";
+	$m = $m."</font><font color=green face=微软雅黑 size=2>".addcslashes(htmlspecialchars($msg,ENT_QUOTES),"\\\r\n'\"")."</font><br>";
 
  	$q = "select raw from aprspacket where tm>=? and `call` = ? and lat ='' order by tm desc limit 1";
 	$stmt = $mysqli->prepare($q);
@@ -295,12 +295,12 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 			$t = strpos($rawmsg, "/UDP");
 			if($t !== false )
 				$rawmsg = substr($rawmsg, 0, $t);
-			$m = $m."<font color=red face=微软雅黑 size=2>".addcslashes(htmlspecialchars($rawmsg),"\\\r\n'\"")."</font><br>";
+			$m = $m."<font color=red face=微软雅黑 size=2>".addcslashes(htmlspecialchars($rawmsg,ENT_QUOTES),"\\\r\n'\"")."</font><br>";
 		}
 	}	
 	$stmt->close();
 	if($path!="") 
-		$m = $m."<font color=black face=微软雅黑 size=2>[".htmlspecialchars($path)."]</font>";
+		$m = $m."<font color=black face=微软雅黑 size=2>[".htmlspecialchars($path,ENT_QUOTES)."]</font>";
 	return $m;	
 }
 
@@ -1108,7 +1108,7 @@ if ($cmd=="new") {
         	echo "</td><td>";
         	echo "<a href=".$_SERVER["PHP_SELF"]."?call=$r[1]>$r[1]</a>";
         	echo "</td><td>";
-		echo $r[2];  //raw
+		echo htmlspecialchars($r[2],ENT_QUOTES);  //raw
         	echo "</td><td>";
 		disp_map($r[1]);
         	echo "</td></tr>\n";
@@ -1125,7 +1125,7 @@ if ($cmd=="new") {
         	echo "</td><td>";
         	echo "<a href=".$_SERVER["PHP_SELF"]."?call=$r[1]>$r[1]</a>";
         	echo "</td><td>";
-		echo $r[2];  //raw
+		echo htmlspecialchars($r[2],ENT_QUOTES);  //raw
         	echo "</td></tr>\n";
 	}
 	echo "</table>\n";
@@ -1141,7 +1141,7 @@ if ($cmd=="new") {
         	echo "</td><td>";
         	echo "<a href=".$_SERVER["PHP_SELF"]."?call=$r[1]>$r[1]</a>";
         	echo "</td><td>";
-		echo $r[2];  //raw
+		echo htmlspecialchars($r[2],ENT_QUOTES);  //raw
         	echo "</td></tr>\n";
 	}
 	echo "</table>\n";
@@ -1233,9 +1233,9 @@ if ($cmd=="call") {
 		echo $r[5];  //table 
 		echo $r[4];  //lon
 		echo $r[6];  //symbol
-		echo $r[7];  //msg
+		echo htmlspecialchars($r[7],ENT_QUOTES);  //msg
         	echo "</td><td>";
-		echo $r[8];  //raw
+		echo htmlspecialchars($r[8],ENT_QUOTES);  //raw
         	echo "</td></tr>\n";
 	}
 	echo "</table>";

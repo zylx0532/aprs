@@ -160,6 +160,8 @@ void process_gumi(int c_fd, unsigned char cmd)
 			}
 			fprintf(stderr, "\n");
 		}
+		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X",
+				imei[0],imei[1],imei[2],imei[3],imei[4],imei[5],imei[6],imei[7]);
 		buffer[0] = buffer[1] = 0x67;
 		buffer[2] = 1;
 		buffer[3] = 0;
@@ -257,6 +259,138 @@ void process_gumi(int c_fd, unsigned char cmd)
 	}
 }
 
+void process_7878(int c_fd, unsigned char pkt_len)
+{
+	unsigned char buffer[MAXLEN];
+	int n;
+	char *call;
+	unsigned char cmd;
+	static char imei[20];
+	static char last_aprs[200];	// last aprs_head
+
+	if (pkt_len > MAXLEN - 10)
+		if (debug) {
+			fprintf(stderr, "too long packet, len=%d\n", pkt_len);
+			exit(0);
+		}
+	n = Readn(c_fd, buffer + 3, 1);
+	if (n != 1)
+		exit(0);
+	cmd = buffer[3];
+	if (cmd == 0x17) {
+
+	}
+	n = Readn(c_fd, buffer + 4, pkt_len + 1);
+	if (n != pkt_len + 1)
+		exit(0);
+	if (debug) {
+		fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+		dump_pkt(buffer + 3, n);
+	}
+	if (cmd == 0x01) {	// login command
+		if (pkt_len < 10) {
+			if (debug)
+				fprintf(stderr, "login cmd, pkt_len should be >=10, but now is %d\n", pkt_len);
+			exit(0);
+		}
+		memcpy(imei, buffer + 4, 8);
+		if (debug) {
+			fprintf(stderr, "IMEI: ");
+			int i;
+			for (i = 0; i < 8; i++) {
+				fprintf(stderr, "%02X", *(imei + i));
+			}
+			fprintf(stderr, "\n");
+		}
+		buffer[0] = buffer[1] = 0x78;
+		buffer[2] = 1;
+		buffer[3] = 1;
+		buffer[4] = 0x0d;
+		buffer[5] = 0x0a;
+		Write(c_fd, buffer, 6);
+		return;
+	}
+	if (cmd == 0x10) {	// GPS infomation
+		int stanum = buffer[10];
+
+		int status = (buffer[20] >> 4) & 1;
+		if (debug) {
+			fprintf(stderr, "GPS status: %d\n", status);
+		}
+		static time_t last_tm;
+		time_t now_tm;
+		now_tm = time(NULL);
+		if (now_tm - last_tm < 3) {
+			if (debug)
+				fprintf(stderr, "packet interval < 3, skip\n");
+			return;
+		}
+		last_tm = now_tm;
+
+		call = imei_call((unsigned char *)imei);
+		if (call[0] == 0)
+			return;
+		n = sprintf(last_aprs, "%s>GT7878,TCPIP*:=", call);
+		float l;
+		l = ((buffer[11] * 256 + buffer[12]) * 256 + buffer[13]) * 256 + buffer[14];
+		l = l / 30000;
+		if (debug)
+			fprintf(stderr, "%f\n", l);
+		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buffer[20] & 4) == 0 ? 'S' : 'N');
+
+		l = ((buffer[15] * 256 + buffer[16]) * 256 + buffer[17]) * 256 + buffer[18];
+		l = l / 30000;
+		if (debug)
+			fprintf(stderr, "%f\n", l);
+		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buffer[20] & 8) == 0 ? 'E' : 'W');
+		n += sprintf(last_aprs + n, "%03d/%03d", (buffer[20] & 0x3) * 256 + buffer[21], (int)(buffer[19] * 0.62));
+
+		char abuf[MAXLEN];
+
+		n = sprintf(abuf, "%s IMEI:", last_aprs);
+		int i;
+		for (i = 6; i < 8; i++)
+			n += sprintf(abuf + n, "%02X", *(imei + i));
+		n += sprintf(abuf + n, "\r\n");
+		if (debug)
+			fprintf(stderr, "APRS: %s\n", abuf);
+		if (strstr(abuf, "GT2UN-9") == 0)	// imei_call
+			sendudp(abuf, n, "127.0.0.1", 14580);
+		else {
+			sendudp(abuf, n, "127.0.0.1", 14582);
+			sendudp(abuf, n, "127.0.0.1", 14583);
+		}
+		time_t timep;
+		struct tm *p;
+		time(&timep);
+		p = localtime(&timep);
+		buffer[0] = buffer[1] = 0x78;
+		buffer[2] = 0;
+		buffer[3] = 0x10;
+		buffer[4] = 1900 + p->tm_year - 2000;
+		buffer[5] = (1 + p->tm_mon);
+		buffer[6] = p->tm_mday;
+		buffer[7] = p->tm_hour;
+		buffer[8] = p->tm_min;
+		buffer[9] = p->tm_sec;
+		buffer[10] = 0x0d;
+		buffer[11] = 0x0a;
+		Write(c_fd, buffer, 12);
+		return;
+	}
+	if (cmd == 0x08) {	// keep live
+		return;
+/*
+		buffer[0] = buffer[1] = 0x67;
+		buffer[2] = cmd;
+		buffer[3] = 0;
+		buffer[4] = 2;
+		Write(c_fd, buffer, 7);
+		return;
+*/
+	}
+}
+
 void Process(int c_fd)
 {
 	unsigned char buffer[MAXLEN];
@@ -281,17 +415,26 @@ void Process(int c_fd)
 			process_gumi(c_fd, buffer[2]);
 			continue;
 		}
+		if ((buffer[0] == 0x78) && (buffer[1] == 0x78)) {	// 0x78 0x78
+			process_7878(c_fd, buffer[2]);
+			continue;
+		}
 
 		n += Readn(c_fd, buffer + 3, buffer[2] + 2);
 		if (debug)
 			dump_pkt(buffer, n);
 		buffer[n] = 0;
-		if ((n >= 15) && (buffer[0] == 0x68) && (buffer[1] == 0x68) && (buffer[15] == 0x1a)) {	// heart beat 
-			snprintf(last_status, 100, "电压:%d GSM信号:%d 卫星数:%d/%d %s",
+		if ((n >= 15) && (buffer[0] == 0x68) && (buffer[1] == 0x68)
+		    && (buffer[15] == 0x1a)) {	// heart beat 
+			snprintf(last_status, 100,
+				 "电压:%d GSM信号:%d 卫星数:%d/%d %s",
 				 buffer[3], buffer[4], buffer[17], buffer[2] - 15,
 				 buffer[16] == 0 ? "未定位" : (buffer[16] == 1 ? "实时GPS" : (buffer[16] == 2 ? "差分GPS" : "未知")));
 			if (debug)
 				fprintf(stderr, "status: %s\n", last_status);
+			err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X",
+				buffer[5], buffer[6], buffer[7], buffer[8], 
+				buffer[9], buffer[10], buffer[11], buffer[12]);
 			buffer[0] = 0x54;
 			buffer[1] = 0x68;
 			buffer[2] = 0x1A;
@@ -304,7 +447,8 @@ void Process(int c_fd)
 			}
 			continue;
 		}
-		if ((n == 42) && (buffer[0] == 0x68) && (buffer[1] == 0x68) && (buffer[2] == 0x25) &&
+		if ((n == 42) && (buffer[0] == 0x68) && (buffer[1] == 0x68)
+		    && (buffer[2] == 0x25) &&
 //                      (buffer[3]==0x0) && (buffer[4]==0x0) && 
 		    (buffer[15] == 0x10)) {	// gps status 
 			if (debug)
@@ -314,6 +458,7 @@ void Process(int c_fd)
 		}
 		if (debug)
 			fprintf(stderr, "unknow packet\n");
+		err_msg("unknow packet: %02X%02X\n",buffer[0],buffer[1]);
 	}
 }
 

@@ -40,6 +40,7 @@ void dump_pkt(unsigned char *buf, int len)
 }
 
 #include "sendudp.c"
+#include "printaddr.c"
 
 char *imei_call(unsigned char *imei)
 {				// imei 8 bytes
@@ -75,38 +76,60 @@ char *imei_call(unsigned char *imei)
 	return call;
 }
 
-void processaprs(unsigned char *buf, int len)
+int process_6868(int c_fd, int len)
 {
 	char abuf[MAXLEN];
+	unsigned char buf[MAXLEN];
 	char *call;
 	static time_t last_tm;
 	time_t now_tm;
-	now_tm = time(NULL);
-	if (now_tm - last_tm < 5) {
+	int cmd;
+	if (Readn(c_fd, buf + 3, len + 2) != len + 2)
+		exit(0);
+	if (debug)
+		dump_pkt(buf + 3, len + 2);
+	cmd = buf[15];
+
+	if ((cmd == 0x1a) && (len >= 15)) {	// heart beat 
+		snprintf(last_status, 100,
+			 "电压:%d GSM信号:%d 卫星数:%d/%d %s",
+			 buf[3], buf[4], buf[17], len - 15,
+			 buf[16] == 0 ? "未定位" : (buf[16] == 1 ? "实时GPS" : (buf[16] == 2 ? "差分GPS" : "未知")));
 		if (debug)
-			fprintf(stderr, "packet interval < 5, skip\n");
-		return;
+			fprintf(stderr, "status: %s\n", last_status);
+		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X", buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12]);
+		buf[0] = 0x54;
+		buf[1] = 0x68;
+		buf[2] = 0x1A;
+		buf[3] = 0x0d;
+		buf[4] = 0x0a;
+		Write(c_fd, buf, 5);
+		if (debug)
+			fprintf(stderr, "heart beat packet\n");
+		return 1;
+	}
+	if ((cmd != 0x10) || (len != 0x25))
+		return 0;
+
+	now_tm = time(NULL);
+	if (now_tm - last_tm < 3) {
+		if (debug)
+			fprintf(stderr, "packet interval < 3, skip\n");
+		return 1;
 	}
 	last_tm = now_tm;
 
 	call = imei_call(buf + 5);
 	if (call[0] == 0)
-		return;
+		return 1;
 	int n = 0, i;
 	n = sprintf(abuf, "%s>GT02,TCPIP*:=", call);
 	float l;
-	l = ((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25];
-	l = l / 30000;
-	if (debug)
-		fprintf(stderr, "%f\n", l);
+	l = (((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25]) / 30000;
 	n += sprintf(abuf + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 2) == 0 ? 'S' : 'N');
-	l = ((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29];
-	l = l / 30000;
-	if (debug)
-		fprintf(stderr, "%f, %d\n", l, (int)(l / 60));
+	l = (((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29]) / 30000;
 	n += sprintf(abuf + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 4) == 0 ? 'W' : 'E');
-	n += sprintf(abuf + n, "%03d/%03d", buf[31] * 256 + buf[32], (int)(buf[30] * 0.62));
-	n += sprintf(abuf + n, "IMEI:");
+	n += sprintf(abuf + n, "%03d/%03d IMEI:", buf[31] * 256 + buf[32], (int)(buf[30] * 0.62));
 	for (i = 6; i < 8; i++)
 		n += sprintf(abuf + n, "%02X", *(buf + 5 + i));
 	n += sprintf(abuf + n, " %s\r\n", last_status);
@@ -118,32 +141,33 @@ void processaprs(unsigned char *buf, int len)
 		sendudp(abuf, n, "127.0.0.1", 14582);
 		sendudp(abuf, n, "127.0.0.1", 14583);
 	}
+	return 1;
 }
 
-void process_gumi(int c_fd, unsigned char cmd)
+int process_gumi(int c_fd, unsigned char cmd)
 {
-	unsigned char buffer[MAXLEN];
+	unsigned char buf[MAXLEN];
 	int n;
 	int pkt_len;
 	char *call;
 	static char imei[20];
 	static char last_aprs[200];	// last aprs_head
 
-	n = Readn(c_fd, buffer, 2);	// read packet len
-	if (n <= 0)
+	n = Readn(c_fd, buf, 2);	// read packet len
+	if (n != 2)
 		exit(0);
-	pkt_len = buffer[0] * 256 + buffer[1];
+	pkt_len = buf[0] * 256 + buf[1];
 	if (pkt_len > MAXLEN - 10)
 		if (debug) {
 			fprintf(stderr, "too long packet, len=%d\n", pkt_len);
 			exit(0);
 		}
-	n = Readn(c_fd, buffer + 5, pkt_len);
+	n = Readn(c_fd, buf + 5, pkt_len);
 	if (n != pkt_len)
 		exit(0);
 	if (debug) {
 		fprintf(stderr, "gumi: 0x67 0x67 cmd=%02X len=%d\n", cmd, pkt_len);
-		dump_pkt(buffer + 5, n);
+		dump_pkt(buf + 5, n);
 	}
 	if (cmd == 0x01) {	// login command
 		if (pkt_len < 10) {
@@ -151,7 +175,7 @@ void process_gumi(int c_fd, unsigned char cmd)
 				fprintf(stderr, "login cmd, pkt_len should be >=10, but now is %d\n", pkt_len);
 			exit(0);
 		}
-		memcpy(imei, buffer + 7, 8);
+		memcpy(imei, buf + 7, 8);
 		if (debug) {
 			fprintf(stderr, "IMEI: ");
 			int i;
@@ -160,14 +184,13 @@ void process_gumi(int c_fd, unsigned char cmd)
 			}
 			fprintf(stderr, "\n");
 		}
-		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X",
-				imei[0],imei[1],imei[2],imei[3],imei[4],imei[5],imei[6],imei[7]);
-		buffer[0] = buffer[1] = 0x67;
-		buffer[2] = 1;
-		buffer[3] = 0;
-		buffer[4] = 2;
-		Write(c_fd, buffer, 7);
-		return;
+		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X", imei[0], imei[1], imei[2], imei[3], imei[4], imei[5], imei[6], imei[7]);
+		buf[0] = buf[1] = 0x67;
+		buf[2] = 1;
+		buf[3] = 0;
+		buf[4] = 2;
+		Write(c_fd, buf, 7);
+		return 1;
 	}
 	if ((cmd == 0x02) || (cmd == 0x04) || (cmd == 0x05) || (cmd == 0x06)) {	// GPS infomation
 		if (pkt_len < 25) {
@@ -176,7 +199,7 @@ void process_gumi(int c_fd, unsigned char cmd)
 			exit(0);
 		}
 
-		int status = buffer[7 + 24] & 1;
+		int status = buf[7 + 24] & 1;
 		if (debug) {
 			fprintf(stderr, "GPS status: %d\n", status);
 		}
@@ -187,18 +210,16 @@ void process_gumi(int c_fd, unsigned char cmd)
 		if (now_tm - last_tm < 3) {
 			if (debug)
 				fprintf(stderr, "packet interval < 3, skip\n");
-			return;
+			goto drop_gps;
 		}
 		last_tm = now_tm;
 
 		call = imei_call((unsigned char *)imei);
 		if (call[0] == 0)
-			return;
+			goto drop_gps;
 		n = sprintf(last_aprs, "%s>GUMI,TCPIP*:=", call);
-		int tmp;
 		float l;
-		tmp = ntohl(*((int *)(buffer + 11)));
-		l = tmp / 30000.0;
+		l = ntohl(*((int *)(buf + 11))) / 30000.0;
 		if (debug)
 			fprintf(stderr, "%f\n", l);
 		char d;
@@ -209,8 +230,7 @@ void process_gumi(int c_fd, unsigned char cmd)
 			d = 'N';
 		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), d);
 
-		tmp = ntohl(*((int *)(buffer + 15)));
-		l = tmp / 30000.0;
+		l = ntohl(*((int *)(buf + 15))) / 30000.0;
 
 		if (debug)
 			fprintf(stderr, "%f\n", l);
@@ -220,7 +240,7 @@ void process_gumi(int c_fd, unsigned char cmd)
 		} else
 			d = 'E';
 		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), d);
-		n += sprintf(last_aprs + n, "%03d/%03d", buffer[20] * 256 + buffer[21], (int)(buffer[19] * 0.62));
+		n += sprintf(last_aprs + n, "%03d/%03d", buf[20] * 256 + buf[21], (int)(buf[19] * 0.62));
 
 		char abuf[MAXLEN];
 
@@ -237,31 +257,33 @@ void process_gumi(int c_fd, unsigned char cmd)
 			sendudp(abuf, n, "127.0.0.1", 14582);
 			sendudp(abuf, n, "127.0.0.1", 14583);
 		}
+ drop_gps:
 		if (cmd == 0x02)
-			return;
+			return 1;
 		if ((cmd == 0x04) || (cmd == 0x05)) {
-			buffer[0] = buffer[1] = 0x67;
-			buffer[2] = cmd;
-			buffer[3] = 0;
-			buffer[4] = 2;
-			Write(c_fd, buffer, 7);
-			return;
+			buf[0] = buf[1] = 0x67;
+			buf[2] = cmd;
+			buf[3] = 0;
+			buf[4] = 2;
+			Write(c_fd, buf, 7);
+			return 1;
 		}
-		return;
+		return 1;
 	}
 	if (cmd == 0x03) {	// keep live
-		buffer[0] = buffer[1] = 0x67;
-		buffer[2] = cmd;
-		buffer[3] = 0;
-		buffer[4] = 2;
-		Write(c_fd, buffer, 7);
-		return;
+		buf[0] = buf[1] = 0x67;
+		buf[2] = cmd;
+		buf[3] = 0;
+		buf[4] = 2;
+		Write(c_fd, buf, 7);
+		return 1;
 	}
+	return 0;
 }
 
-void process_7878(int c_fd, unsigned char pkt_len)
+int process_7878(int c_fd, unsigned char pkt_len)
 {
-	unsigned char buffer[MAXLEN];
+	unsigned char buf[MAXLEN];
 	int n;
 	char *call;
 	unsigned char cmd;
@@ -273,19 +295,19 @@ void process_7878(int c_fd, unsigned char pkt_len)
 			fprintf(stderr, "too long packet, len=%d\n", pkt_len);
 			exit(0);
 		}
-	n = Readn(c_fd, buffer + 3, 1);
+	n = Readn(c_fd, buf + 3, 1);
 	if (n != 1)
 		exit(0);
-	cmd = buffer[3];
+	cmd = buf[3];
 	if (cmd == 0x17) {
 
 	}
-	n = Readn(c_fd, buffer + 4, pkt_len + 1);
+	n = Readn(c_fd, buf + 4, pkt_len + 1);
 	if (n != pkt_len + 1)
 		exit(0);
 	if (debug) {
 		fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
-		dump_pkt(buffer + 3, n);
+		dump_pkt(buf + 3, n);
 	}
 	if (cmd == 0x01) {	// login command
 		if (pkt_len < 10) {
@@ -293,7 +315,7 @@ void process_7878(int c_fd, unsigned char pkt_len)
 				fprintf(stderr, "login cmd, pkt_len should be >=10, but now is %d\n", pkt_len);
 			exit(0);
 		}
-		memcpy(imei, buffer + 4, 8);
+		memcpy(imei, buf + 4, 8);
 		if (debug) {
 			fprintf(stderr, "IMEI: ");
 			int i;
@@ -302,18 +324,18 @@ void process_7878(int c_fd, unsigned char pkt_len)
 			}
 			fprintf(stderr, "\n");
 		}
-		buffer[0] = buffer[1] = 0x78;
-		buffer[2] = 1;
-		buffer[3] = 1;
-		buffer[4] = 0x0d;
-		buffer[5] = 0x0a;
-		Write(c_fd, buffer, 6);
-		return;
+		buf[0] = buf[1] = 0x78;
+		buf[2] = 1;
+		buf[3] = 1;
+		buf[4] = 0x0d;
+		buf[5] = 0x0a;
+		Write(c_fd, buf, 6);
+		return 1;
 	}
 	if (cmd == 0x10) {	// GPS infomation
-		int stanum = buffer[10];
+		int satnum = buf[10];
 
-		int status = (buffer[20] >> 4) & 1;
+		int status = (buf[20] >> 4) & 1;
 		if (debug) {
 			fprintf(stderr, "GPS status: %d\n", status);
 		}
@@ -323,27 +345,21 @@ void process_7878(int c_fd, unsigned char pkt_len)
 		if (now_tm - last_tm < 3) {
 			if (debug)
 				fprintf(stderr, "packet interval < 3, skip\n");
-			return;
+			goto drop_gps;
 		}
 		last_tm = now_tm;
 
 		call = imei_call((unsigned char *)imei);
 		if (call[0] == 0)
-			return;
+			return 1;
 		n = sprintf(last_aprs, "%s>GT7878,TCPIP*:=", call);
 		float l;
-		l = ((buffer[11] * 256 + buffer[12]) * 256 + buffer[13]) * 256 + buffer[14];
-		l = l / 30000;
-		if (debug)
-			fprintf(stderr, "%f\n", l);
-		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buffer[20] & 4) == 0 ? 'S' : 'N');
+		l = (((buf[11] * 256 + buf[12]) * 256 + buf[13]) * 256 + buf[14]) / 30000;
+		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 4) == 0 ? 'S' : 'N');
 
-		l = ((buffer[15] * 256 + buffer[16]) * 256 + buffer[17]) * 256 + buffer[18];
-		l = l / 30000;
-		if (debug)
-			fprintf(stderr, "%f\n", l);
-		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buffer[20] & 8) == 0 ? 'E' : 'W');
-		n += sprintf(last_aprs + n, "%03d/%03d", (buffer[20] & 0x3) * 256 + buffer[21], (int)(buffer[19] * 0.62));
+		l = (((buf[15] * 256 + buf[16]) * 256 + buf[17]) * 256 + buf[18]) / 30000;
+		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 8) == 0 ? 'E' : 'W');
+		n += sprintf(last_aprs + n, "%03d/%03d", (buf[20] & 0x3) * 256 + buf[21], (int)(buf[19] * 0.62));
 
 		char abuf[MAXLEN];
 
@@ -351,7 +367,7 @@ void process_7878(int c_fd, unsigned char pkt_len)
 		int i;
 		for (i = 6; i < 8; i++)
 			n += sprintf(abuf + n, "%02X", *(imei + i));
-		n += sprintf(abuf + n, "\r\n");
+		n += sprintf(abuf + n, "卫星数:%d\r\n", satnum);
 		if (debug)
 			fprintf(stderr, "APRS: %s\n", abuf);
 		if (strstr(abuf, "GT2UN-9") == 0)	// imei_call
@@ -362,33 +378,27 @@ void process_7878(int c_fd, unsigned char pkt_len)
 		}
 		time_t timep;
 		struct tm *p;
+ drop_gps:
 		time(&timep);
 		p = localtime(&timep);
-		buffer[0] = buffer[1] = 0x78;
-		buffer[2] = 0;
-		buffer[3] = 0x10;
-		buffer[4] = 1900 + p->tm_year - 2000;
-		buffer[5] = (1 + p->tm_mon);
-		buffer[6] = p->tm_mday;
-		buffer[7] = p->tm_hour;
-		buffer[8] = p->tm_min;
-		buffer[9] = p->tm_sec;
-		buffer[10] = 0x0d;
-		buffer[11] = 0x0a;
-		Write(c_fd, buffer, 12);
-		return;
+		buf[0] = buf[1] = 0x78;
+		buf[2] = 0;
+		buf[3] = 0x10;
+		buf[4] = 1900 + p->tm_year - 2000;
+		buf[5] = (1 + p->tm_mon);
+		buf[6] = p->tm_mday;
+		buf[7] = p->tm_hour;
+		buf[8] = p->tm_min;
+		buf[9] = p->tm_sec;
+		buf[10] = 0x0d;
+		buf[11] = 0x0a;
+		Write(c_fd, buf, 12);
+		return 1;
 	}
 	if (cmd == 0x08) {	// keep live
-		return;
-/*
-		buffer[0] = buffer[1] = 0x67;
-		buffer[2] = cmd;
-		buffer[3] = 0;
-		buffer[4] = 2;
-		Write(c_fd, buffer, 7);
-		return;
-*/
+		return 1;
 	}
+	return 0;
 }
 
 void Process(int c_fd)
@@ -396,6 +406,7 @@ void Process(int c_fd)
 	unsigned char buffer[MAXLEN];
 	int n;
 	int optval;
+	int r;
 	socklen_t optlen = sizeof(optval);
 	optval = 200;
 	Setsockopt(c_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
@@ -408,57 +419,20 @@ void Process(int c_fd)
 
 	while (1) {
 		n = Readn(c_fd, buffer, 3);
-		if (n <= 0) {
+		if (n != 3) {
 			exit(0);
 		}
-		if ((buffer[0] == 0x67) && (buffer[1] == 0x67)) {	// gumi devices
-			process_gumi(c_fd, buffer[2]);
+		if ((buffer[0] == 0x67) && (buffer[1] == 0x67))	// gumi devices
+			r = process_gumi(c_fd, buffer[2]);
+		if ((buffer[0] == 0x68) && (buffer[1] == 0x68))	// gt02a
+			r = process_6868(c_fd, buffer[2]);
+		if ((buffer[0] == 0x78) && (buffer[1] == 0x78))	// 0x78 0x78
+			r = process_7878(c_fd, buffer[2]);
+		if (r)
 			continue;
-		}
-		if ((buffer[0] == 0x78) && (buffer[1] == 0x78)) {	// 0x78 0x78
-			process_7878(c_fd, buffer[2]);
-			continue;
-		}
-
-		n += Readn(c_fd, buffer + 3, buffer[2] + 2);
-		if (debug)
-			dump_pkt(buffer, n);
-		buffer[n] = 0;
-		if ((n >= 15) && (buffer[0] == 0x68) && (buffer[1] == 0x68)
-		    && (buffer[15] == 0x1a)) {	// heart beat 
-			snprintf(last_status, 100,
-				 "电压:%d GSM信号:%d 卫星数:%d/%d %s",
-				 buffer[3], buffer[4], buffer[17], buffer[2] - 15,
-				 buffer[16] == 0 ? "未定位" : (buffer[16] == 1 ? "实时GPS" : (buffer[16] == 2 ? "差分GPS" : "未知")));
-			if (debug)
-				fprintf(stderr, "status: %s\n", last_status);
-			err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X",
-				buffer[5], buffer[6], buffer[7], buffer[8], 
-				buffer[9], buffer[10], buffer[11], buffer[12]);
-			buffer[0] = 0x54;
-			buffer[1] = 0x68;
-			buffer[2] = 0x1A;
-			buffer[3] = 0x0d;
-			buffer[4] = 0x0a;
-			Write(c_fd, buffer, 5);
-			if (debug) {
-				fprintf(stderr, "heart beat packet\n");
-				fprintf(stderr, "send back heart beat\n");
-			}
-			continue;
-		}
-		if ((n == 42) && (buffer[0] == 0x68) && (buffer[1] == 0x68)
-		    && (buffer[2] == 0x25) &&
-//                      (buffer[3]==0x0) && (buffer[4]==0x0) && 
-		    (buffer[15] == 0x10)) {	// gps status 
-			if (debug)
-				fprintf(stderr, "GPS status packet\n");
-			processaprs(buffer, n);
-			continue;
-		}
 		if (debug)
 			fprintf(stderr, "unknow packet\n");
-		err_msg("unknow packet: %02X%02X\n",buffer[0],buffer[1]);
+		err_msg("unknow packet: %02X%02X\n", buffer[0], buffer[1]);
 	}
 }
 
@@ -501,6 +475,7 @@ int main(int argc, char *argv[])
 		int slen;
 		slen = sizeof(sa);
 		c_fd = Accept(listen_fd, &sa, (socklen_t *) & slen);
+		err_msg("accept from %s", PrintAddr((struct sockaddr *)&sa));
 		if (debug) {
 			fprintf(stderr, "get connection:\n");
 			Process(c_fd);

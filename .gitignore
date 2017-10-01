@@ -16,4 +16,4 @@ udptomysql
 udptomysql2
 web/il.php
 web/img/tmp/
-
+*.c~

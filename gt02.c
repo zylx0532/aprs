@@ -125,9 +125,9 @@ int process_6868(int c_fd, int len)
 	int n = 0, i;
 	n = sprintf(abuf, "%s>GT02,TCPIP*:=", call);
 	float l;
-	l = (((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25]) / 30000;
+	l = (((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25]) / 30000.0;
 	n += sprintf(abuf + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 2) == 0 ? 'S' : 'N');
-	l = (((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29]) / 30000;
+	l = (((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29]) / 30000.0;
 	n += sprintf(abuf + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 4) == 0 ? 'W' : 'E');
 	n += sprintf(abuf + n, "%03d/%03d IMEI:", buf[31] * 256 + buf[32], (int)(buf[30] * 0.62));
 	for (i = 6; i < 8; i++)
@@ -354,10 +354,10 @@ int process_7878(int c_fd, unsigned char pkt_len)
 			return 1;
 		n = sprintf(last_aprs, "%s>GT7878,TCPIP*:=", call);
 		float l;
-		l = (((buf[11] * 256 + buf[12]) * 256 + buf[13]) * 256 + buf[14]) / 30000;
+		l = (((buf[11] * 256 + buf[12]) * 256 + buf[13]) * 256 + buf[14]) / 30000.0;
 		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 4) == 0 ? 'S' : 'N');
 
-		l = (((buf[15] * 256 + buf[16]) * 256 + buf[17]) * 256 + buf[18]) / 30000;
+		l = (((buf[15] * 256 + buf[16]) * 256 + buf[17]) * 256 + buf[18]) / 30000.0;
 		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 8) == 0 ? 'E' : 'W');
 		n += sprintf(last_aprs + n, "%03d/%03d", (buf[20] & 0x3) * 256 + buf[21], (int)(buf[19] * 0.62));
 

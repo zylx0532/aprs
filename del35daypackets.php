@@ -3,8 +3,8 @@
 date_default_timezone_set("Asia/Shanghai");
 include "web/db.php";
 
-$q="delete from aprspacket where tm<=date_sub(now(), interval 35 day)";
+$q="delete from aprspacket where tm<=date_sub(now(), interval 7 day) limit 2000";
 $result = $mysqli->query($q);
-$q="delete from aprspackethourcount where tm<=date_sub(now(), interval 35 day)";
+$q="delete from aprspackethourcount where tm<=date_sub(now(), interval 30 day)";
 $result = $mysqli->query($q);
 ?>

@@ -14,6 +14,7 @@ udptolocal
 udptolog
 udptomysql
 udptomysql2
+resendaprs
 web/il.php
 web/img/tmp/
 *.c~

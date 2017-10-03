@@ -245,9 +245,9 @@ void ToMysql(char *buf, int len)
 
 			p -= 4;	// will rewrite buff 
 			lat = p;
-			sprintf(lat, "%02.0f%05.2f%c", flat, (flat - floor(flat)) * 60, S);
+			sprintf(lat, "%02.0f%05.2f%c", floor(flat), (flat - floor(flat)) * 60, S);
 			lon = p + 10;
-			sprintf(lon, "%02.0f%05.2f%c", flon, (flon - floor(flon)) * 60, W);
+			sprintf(lon, "%02.0f%05.2f%c", floor(flon), (flon - floor(flon)) * 60, W);
 			msg = "";
 		} else {
 			if (strlen(p) < 17)

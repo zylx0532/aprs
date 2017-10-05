@@ -27,6 +27,9 @@
 char last_status[MAXLEN];
 int debug = 0;
 
+char table = '/';
+char symbol = '>';
+
 void dump_pkt(unsigned char *buf, int len)
 {
 	int i;
@@ -65,8 +68,26 @@ char *imei_call(unsigned char *imei)
 			if (ibuf[strlen(ibuf) - 1] == '\n')
 				ibuf[strlen(ibuf) - 1] = 0;
 			if (memcmp(ibuf, call, 16) == 0) {
+				char *p;
 				fclose(fp);
 				strncpy(call, ibuf + 17, 10);
+				p = call;
+				while (*p && (*p != ' '))
+					p++;
+				if (*p == ' ') {
+					*p = 0;
+					p++;
+					if (*p && *(p+1) ) {
+						table = *p;
+						symbol = *(p+1);
+					} else {
+						table ='/';
+						symbol = '>';
+					}
+				} else {
+					table ='/';
+					symbol = '>';
+				}
 				return call;
 			}
 		}
@@ -126,9 +147,9 @@ int process_6868(int c_fd, int len)
 	n = sprintf(abuf, "%s>GT02,TCPIP*:=", call);
 	float l;
 	l = (((buf[22] * 256 + buf[23]) * 256 + buf[24]) * 256 + buf[25]) / 30000.0;
-	n += sprintf(abuf + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 2) == 0 ? 'S' : 'N');
+	n += sprintf(abuf + n, "%02d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 2) == 0 ? 'S' : 'N', table);
 	l = (((buf[26] * 256 + buf[27]) * 256 + buf[28]) * 256 + buf[29]) / 30000.0;
-	n += sprintf(abuf + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 4) == 0 ? 'W' : 'E');
+	n += sprintf(abuf + n, "%03d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[39] & 4) == 0 ? 'W' : 'E', symbol);
 	n += sprintf(abuf + n, "%03d/%03d IMEI:", buf[31] * 256 + buf[32], (int)(buf[30] * 0.62));
 	for (i = 6; i < 8; i++)
 		n += sprintf(abuf + n, "%02X", *(buf + 5 + i));
@@ -228,7 +249,7 @@ int process_gumi(int c_fd, unsigned char cmd)
 			d = 'S';
 		} else
 			d = 'N';
-		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), d);
+		n += sprintf(last_aprs + n, "%02d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), d, table);
 
 		l = ntohl(*((int *)(buf + 15))) / 30000.0;
 
@@ -239,7 +260,7 @@ int process_gumi(int c_fd, unsigned char cmd)
 			d = 'W';
 		} else
 			d = 'E';
-		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), d);
+		n += sprintf(last_aprs + n, "%03d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), d, symbol);
 		n += sprintf(last_aprs + n, "%03d/%03d", buf[20] * 256 + buf[21], (int)(buf[19] * 0.62));
 
 		char abuf[MAXLEN];
@@ -355,10 +376,10 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		n = sprintf(last_aprs, "%s>GT7878,TCPIP*:=", call);
 		float l;
 		l = (((buf[11] * 256 + buf[12]) * 256 + buf[13]) * 256 + buf[14]) / 30000.0;
-		n += sprintf(last_aprs + n, "%02d%05.2f%c/", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 4) == 0 ? 'S' : 'N');
+		n += sprintf(last_aprs + n, "%02d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 4) == 0 ? 'S' : 'N', table);
 
 		l = (((buf[15] * 256 + buf[16]) * 256 + buf[17]) * 256 + buf[18]) / 30000.0;
-		n += sprintf(last_aprs + n, "%03d%05.2f%c>", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 8) == 0 ? 'E' : 'W');
+		n += sprintf(last_aprs + n, "%03d%05.2f%c%c", (int)(l / 60), l - 60 * ((int)(l / 60)), (buf[20] & 8) == 0 ? 'E' : 'W', symbol);
 		n += sprintf(last_aprs + n, "%03d/%03d", (buf[20] & 0x3) * 256 + buf[21], (int)(buf[19] * 0.62));
 
 		char abuf[MAXLEN];

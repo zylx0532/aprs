@@ -67,10 +67,12 @@ char *imei_call(unsigned char *imei)
 				continue;
 			if (ibuf[strlen(ibuf) - 1] == '\n')
 				ibuf[strlen(ibuf) - 1] = 0;
+			if (ibuf[strlen(ibuf) - 1] == '\r')
+				ibuf[strlen(ibuf) - 1] = 0;
 			if (memcmp(ibuf, call, 16) == 0) {
 				char *p;
 				fclose(fp);
-				strncpy(call, ibuf + 17, 10);
+				strncpy(call, ibuf + 17, 20);
 				p = call;
 				while (*p && (*p != ' '))
 					p++;

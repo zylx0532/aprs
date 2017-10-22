@@ -115,9 +115,9 @@ int process_6868(int c_fd, int len)
 
 	if ((cmd == 0x1a) && (len >= 15)) {	// heart beat 
 		snprintf(last_status, 100,
-			 "电压:%d GSM信号:%d 卫星数:%d/%d %s",
+			 "Voltage:%d GSM Signal:%d Satellites:%d/%d %s",
 			 buf[3], buf[4], buf[17], len - 15,
-			 buf[16] == 0 ? "未定位" : (buf[16] == 1 ? "实时GPS" : (buf[16] == 2 ? "差分GPS" : "未知")));
+			 buf[16] == 0 ? "Unlocated" : (buf[16] == 1 ? "Realtime GPS" : (buf[16] == 2 ? "DGPS" : "Unknown")));
 		if (debug)
 			fprintf(stderr, "status: %s\n", last_status);
 		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X", buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12]);

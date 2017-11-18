@@ -1,6 +1,6 @@
 <?php
 
-$colors = array("FF1400FF","FF143CC8","FF147850","FF14F01E","FF14F0DC","FF78D200","FF78503C","FF7832F0","FF3278B4","FF78FF3C","FFDCDCDC","FF00FFF0");
+$colors = array("FFBBCDC5","FF808080","FF725e82","FF5d513c","FFe29c45","FFb35c44","FF827100","FFff1430","FF40de5a","FFff0097","FFff4c00","FF3b2e7e");
 $colorindex=0;
 
 include "db.php";
@@ -331,7 +331,9 @@ while($stmt->fetch()) {
 	echo md5($call);
 	echo "\">\n";
 	echo "<LabelStyle><color>";
- 	echo $colors[ord(md5($call))%count($colors)];		
+	$colorindex++;
+	if($colorindex==count($colors)) $colorindex=0;
+ 	echo $colors[$colorindex];		
 	echo "</color><scale>1</scale></LabelStyle>\n";
 	echo "<IconStyle><Icon><href>";
 	echo $baseurl;
@@ -339,9 +341,7 @@ while($stmt->fetch()) {
     	echo "</Icon><scale>1</scale></IconStyle>\n";
   	echo "<LineStyle>\n";
     	echo "<color>";
-	echo $colors[ord(md5($call))%count($colors)];
-	$colorindex++;
-	if($colorindex==count($colors)) $colorindex=0;
+ 	echo $colors[$colorindex];		
 	echo "</color>\n";
     	echo "<colorMode>normal</colorMode>\n";
     	echo "<width>4</width>\n";

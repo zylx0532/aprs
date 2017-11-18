@@ -1,6 +1,6 @@
 <?php
 
-$colors = array("FFBBCDC5","FF808080","FF725e82","FF5d513c","FFe29c45","FFb35c44","FF827100","FFff1430","FF40de5a","FFff0097","FFff4c00","FF3b2e7e");
+$colors = array("FFc00000","FFff0000","FFffc000","FFffff00","FF92d050","FF00b050","FF00b0f0","FF0070c0","FF002060","FFf7030a0");
 $colorindex=0;
 
 include "db.php";

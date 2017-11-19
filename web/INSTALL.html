@@ -111,6 +111,10 @@ CREATE TABLE `aprspackethourcount` (
   PRIMARY KEY (`tm`,`call`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE `color` (
+  `rgb` char(6) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+INSERT INTO `color` VALUES ('FF0000'),('0000FF'),('FF00FF'),('FF6666'),('CC66CC'),('FFFF00'),('66ffff'),('00ff00'),('6495ED'),('BDB76B'),('00CED1'),('ADFF2F'),('20B2AA'),('00FA9A'),('808000'),('9ACD32');
 
 10. 设置开机启动
 执行

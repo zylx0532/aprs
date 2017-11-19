@@ -1,14 +1,18 @@
 <?php
 
-$colors = array("FFFF0000","FFD1CE00","FF9AFA00","FF00ff00","FFFFFF00","FFAAB220","FFED9564","FFffff66","FF008080","FF32CD9A","FF2FFFAD","FF6BB7BD","FFCC66CC","FF0000FF","FFFF00FF","FF6666FF","FF00FFFF"
-);
+include "db.php";
 
-//"FF0000C0","FF0000ff","FF00c0FF","FF00ffff","FF66cc99","FF669900","FFff9900", "FFcc6600","FF663300","FF993366");
-// ,"FF5c5bf2", "FF71f1ef", "FFf55bf2", "FFf57859", "FF5cf4f2", "FFbe62bd); 
-
+$colors = array ();
 $colorindex=0;
 
-include "db.php";
+$q="select rgb from color order by rgb";
+$stmt=$mysqli->prepare($q);
+$stmt->execute();
+$stmt->bind_result($rgb);
+while($stmt->fetch()) {
+	$colors[]="FF".substr($rgb,4,2).substr($rgb,2,2).substr($rgb,0,2);
+}
+$stmt->close();
 
 date_default_timezone_set( 'Asia/Shanghai');
 

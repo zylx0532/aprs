@@ -266,7 +266,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 	if( (strlen($msg)>=9) &&
 		strstr($msg,"MHz/A=") )       // 430.100MHz/A=000392
 	{	
-		$hz = substr($msg,0,strpos($msg,"MHz/A="));
+		$hz = substr($msg,1,strpos($msg,"MHz/A="));
 		$msg = strstr($msg,"MHz/A=");
 		$msg = substr($msg,4);
 		$alt=number_format(substr($msg,3,6)*0.3048,1);

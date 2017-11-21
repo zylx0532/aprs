@@ -270,7 +270,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 		$msg = strstr($msg,"MHz/A=");
 		$msg = substr($msg,4);
 		$alt=number_format(substr($msg,3,6)*0.3048,1);
-		$m = $m."<b> 海拔".$alt."m</b><br>";
+		$m = $m." 海拔".$alt."m</b><br>";
 		$msg = $hz."MHz ".substr($msg,9);
 	}
 		

@@ -325,15 +325,12 @@ int process_7878(int c_fd, unsigned char pkt_len)
 	if(debug)
 		fprintf(stderr,"gpr_7878, cmd=%02X\n",cmd);
 
-	if (cmd == 0x17) {
-
-	}
 	if (cmd == 0x01) {	// login command
 		n = Readn(c_fd, buf + 4, pkt_len -2);  // 协议文本有错，实际的协议中，包长度是除了7878以外的所有字节，包含最后的0d0a
 		if (n != pkt_len -2)
 			exit(0);
 		if (debug) {
-			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, login cmd=0x01\n", pkt_len);
 			dump_pkt(buf + 3, n+1);
 		}
 		if (pkt_len < 10) {
@@ -355,6 +352,10 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		buf[3] = 1;
 		buf[4] = 0x0d;
 		buf[5] = 0x0a;
+		if (debug) {
+			fprintf(stderr, "login cmd return, len=%d\n", 6);
+			dump_pkt(buf, 6);
+		}
 		Write(c_fd, buf, 6);
 		return 1;
 	}
@@ -363,7 +364,7 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		if (n != pkt_len +2)
 			exit(0);
 		if (debug) {
-			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, gps information cmd=0x10\n", pkt_len);
 			dump_pkt(buf + 3, n+1);
 		}
 		int satnum = buf[10] & 0xf;
@@ -409,22 +410,24 @@ int process_7878(int c_fd, unsigned char pkt_len)
 			sendudp(abuf, n, "127.0.0.1", 14582);
 			sendudp(abuf, n, "127.0.0.1", 14583);
 		}
-		time_t timep;
-		struct tm *p;
  drop_gps:
-		time(&timep);
-		p = localtime(&timep);
 		buf[0] = buf[1] = 0x78;
 		buf[2] = 0;
 		buf[3] = 0x10;
+/*
 		buf[4] = 1900 + p->tm_year - 2000;
 		buf[5] = (1 + p->tm_mon);
 		buf[6] = p->tm_mday;
 		buf[7] = p->tm_hour;
 		buf[8] = p->tm_min;
 		buf[9] = p->tm_sec;
+*/
 		buf[10] = 0x0d;
 		buf[11] = 0x0a;
+		if (debug) {
+			fprintf(stderr, "gps cmd return, len=%d\n", 12);
+			dump_pkt(buf, 12);
+		}
 		Write(c_fd, buf, 12);
 		return 1;
 	}
@@ -433,7 +436,7 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		if (n != pkt_len +1)
 			exit(0);
 		if (debug) {
-			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, hart beat cmd=0x08\n", pkt_len);
 			dump_pkt(buf + 3, n+1);
 		}
 		return 1;
@@ -443,9 +446,40 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		if (n != pkt_len )
 			exit(0);
 		if (debug) {
-			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, status cmd=0x13\n", pkt_len);
 			dump_pkt(buf + 3, n+1);
 		}
+		return 1;
+	}
+	if (cmd == 0x30) {	// sync time
+		n = Readn(c_fd, buf + 4, pkt_len +1); 
+		if (n != pkt_len +1)
+			exit(0);
+		if (debug) {
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, sync time cmd=0x30\n", pkt_len);
+			dump_pkt(buf + 3, n+1);
+		}
+                time_t timep;
+                struct tm *p;
+                time(&timep);
+                p = gmtime(&timep);
+                buf[0] = buf[1] = 0x78;
+                buf[2] = 0x7;
+                buf[3] = 0x30;
+                buf[4] = (1900 + p->tm_year)/256;
+                buf[5] = (1900 + p->tm_year)%256;
+                buf[6] = (1 + p->tm_mon);
+                buf[7] = p->tm_mday;
+                buf[8] = p->tm_hour;
+                buf[9] = p->tm_min;
+                buf[10] = p->tm_sec;
+                buf[11] = 0x0d;
+                buf[12] = 0x0a;
+		if (debug) {
+			fprintf(stderr, "gps sync time return, len=%d\n", 13);
+			dump_pkt(buf, 13);
+		}
+                Write(c_fd, buf, 13);
 		return 1;
 	}
 	if (cmd == 0x57) {	// sync data    
@@ -453,7 +487,7 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		if (n != pkt_len +1)
 			exit(0);
 		if (debug) {
-			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
+			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, sync data cmd=0x57\n", pkt_len);
 			dump_pkt(buf + 3, n+1);
 		}
 //起始位2byte 包长度1byte 协议号1byte 上传间隔2byte 开关1byte 闹钟9byte        勿扰时间开关1byte 勿扰时间9byte      GPS 定时开关1byte GPS 定时时间4byte SOS 爸爸妈妈3 个号码 （长度不定，3B（";"）做分割符 结束位2byte
@@ -473,6 +507,10 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		
 		buf[34]=0x0d;
 		buf[35]=0x0a;
+		if (debug) {
+			fprintf(stderr, "gps sync data return, len=%d\n", 36);
+			dump_pkt(buf, 36);
+		}
 
 		Write(c_fd, buf, 36);
 		return 1;

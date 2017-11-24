@@ -399,11 +399,11 @@ while($stmt->fetch()) {
   	echo "  </Point>\n";
 
 if($disppath==1) {
-	$q = "select concat(lat,lon) a,lat,lon,msg,datatype from aprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' group by a order by `tm`";
+	$q = "select lat,lon,msg,datatype from posaprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' order by `tm`";
 	$stmt2=$mysqli->prepare($q);
 	$stmt2->bind_param("ss",$startdatestr,$call);
 	$stmt2->execute();
-	$stmt2->bind_result($nouse, $glat, $glon, $msg, $ddt);
+	$stmt2->bind_result($glat, $glon, $msg, $ddt);
 	$stmt2->store_result();	
 	if($stmt2->num_rows>1) {
 		echo "<LineString>\n";

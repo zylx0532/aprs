@@ -420,7 +420,7 @@ if ($cmd=="tm") {
 		$pathlen = @$_REQUEST["pathlen"];
 		if($pathlen=="") $pathlen=0;
 	}
-	$q="select lat,lon from aprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm limit 50000 offset ?";
+	$q="select lat,lon from posaprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm limit 50000 offset ?";
         $stmt=$mysqli->prepare($q);
         $stmt->bind_param("ssi",$startdatestr,$call,$pathlen);
         $stmt->execute();
@@ -916,7 +916,7 @@ Content-Type:application/gpx+xml
 	echo "<gpx version=\"1.0\">\n";
 	echo "<name>APRS GPX</name>\n";
 	echo "<trk><name>".$call." ".$startdatestr." Track</name><number>1</number><trkseg>\n";
-	$q="select date_format(CONVERT_TZ(tm,@@session.time_zone, '+00:00'),\"%Y-%m-%dT%H:%i:%sZ\"),lat,lon,msg,datatype from aprspacket where tm>=? and tm<=? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm";
+	$q="select date_format(CONVERT_TZ(tm,@@session.time_zone, '+00:00'),\"%Y-%m-%dT%H:%i:%sZ\"),lat,lon,msg,datatype from posaprspacket where tm>=? and tm<=? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm";
         $stmt=$mysqli->prepare($q);
         $stmt->bind_param("sss",$startdatestr,$enddatestr,$call);
         $stmt->execute();
@@ -1040,7 +1040,7 @@ function download_kml($call, $startdatestr, $enddatestr) {
 	echo "<styleUrl>#ylw</styleUrl>\n";
 	echo "<gx:Track id=\"1\">\n";
 	echo "<altitudeMode>absolute</altitudeMode>\n";
-	$q="select date_format(CONVERT_TZ(tm,@@session.time_zone, '+00:00'),\"%Y-%m-%dT%H:%i:%sZ\"),lat,lon,msg,datatype from aprspacket where tm>=? and tm<=? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm";
+	$q="select date_format(CONVERT_TZ(tm,@@session.time_zone, '+00:00'),\"%Y-%m-%dT%H:%i:%sZ\"),lat,lon,msg,datatype from posaprspacket where tm>=? and tm<=? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm";
         $stmt=$mysqli->prepare($q);
         $stmt->bind_param("sss",$startdatestr,$enddatestr,$call);
         $stmt->execute();
@@ -1152,32 +1152,91 @@ if ($cmd=="today") {
 	if(isset($_REQUEST["str"])) {
 		$str = $_REQUEST["str"];
 		echo "<h3>今天收到的 <a href=".$_SERVER["PHP_SELF"]."?track=".$str.">$str</a> 有关APRS数据包 ";
-	} else {
-		echo "<h3>今天收到的APRS数据包 ";
-		$str = "";
-	}
-	$str = "%".$str."%";
-	$q = "select count(distinct(`call`)), count(*) from aprspacket where tm>curdate() and ( `call` like ? or raw like ?) ";
+
+		$str = "%".$str."%";
+		$q = "select count(distinct(`call`)), count(*) from aprspacket where tm>curdate() and `call` like ? ";
+		$stmt=$mysqli->prepare($q);
+		$stmt->bind_param("s",$str);
+		$stmt->execute();
+		$stmt->bind_result($r[0],$r[1]);
+		$stmt->store_result();	
+		$stmt->fetch();
+		echo "<font color=blue>";
+		echo $r[0]."呼号/".$r[1]."数据包";
+		$stmt->close();
+
+		$q = "select count(*) from posaprspacket where tm>curdate() and `call` like ? ";
+		$stmt=$mysqli->prepare($q);
+		$stmt->bind_param("s",$str);
+		$stmt->execute();
+		$stmt->bind_result($r[0]);
+		$stmt->store_result();	
+		$stmt->fetch();
+		echo $r[0]."位置数据包";
+		$stmt->close();
+		echo "</font>";
+		echo "</h3>";
+
+		if(isset($_REQUEST["c"]))
+			$q = "select `call`, count(*) c, count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() and `call` like ? group by `call` order by c desc";
+		else if(isset($_REQUEST["d"]))
+			$q = "select `call`, count(*), count(distinct(concat(lon,lat))) c from aprspacket where tm>curdate() and `call` like ? group by `call` order by c desc";
+		else
+			$q = "select `call`, count(*), count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() and `call` like ? group by `call`";
+		$stmt=$mysqli->prepare($q);
+		$stmt->bind_param("s",$str);
+		$stmt->execute();
+		$stmt->bind_result($r[0],$r[1],$r[2]);
+		$stmt->store_result();	
+		echo "<table border=1 cellspacing=0><tr><th><a href=".$_SERVER["PHP_SELF"]."?today>呼号</a></th>";
+		echo "<th><a href=".$_SERVER["PHP_SELF"]."?today&c>数据包数量</a></th>";
+		echo "<th><a href=".$_SERVER["PHP_SELF"]."?today&d>位置点数量</a></th><th>下载轨迹</th><th>地图</th></tr>\n";
+		while($stmt->fetch()) {
+        		echo "<tr><td>";
+        		echo "<a href=".$_SERVER["PHP_SELF"]."?call=$r[0]>$r[0]</a>";
+        		echo "</td><td align=right>";
+        		echo $r[1];
+        		echo "</td><td align=right>";
+        		echo $r[2];
+        		echo "</td><td>";
+        		echo "<a href=".$_SERVER["PHP_SELF"]."?track=$r[0]>下载轨迹</a>";
+        		echo "</td><td>";
+			disp_map($r[0]);
+        		echo "</td></tr>\n";
+		}
+		echo "</table>";
+		exit(0);
+	} 
+
+	echo "<h3>今天收到的APRS数据包 ";
+	$q = "select count(distinct(`call`)), count(*) from aprspacket where tm>curdate()";
 	$stmt=$mysqli->prepare($q);
-	$stmt->bind_param("ss",$str,$str);
 	$stmt->execute();
 	$stmt->bind_result($r[0],$r[1]);
 	$stmt->store_result();	
 	$stmt->fetch();
 	echo "<font color=blue>";
-	echo $r[0]."呼号/".$r[1]."数据包";
-	echo "</font>";
-	echo "</h3>";
+	echo $r[0]."呼号/".$r[1]."数据包/";
+	$stmt->close();
+	$q = "select count(*) from posaprspacket where tm>curdate()";
+	$stmt=$mysqli->prepare($q);
+	$stmt->execute();
+	$stmt->bind_result($r[0]);
+	$stmt->store_result();	
+	$stmt->fetch();
+	echo $r[0]."位置数据包";
 	$stmt->close();
 
+	echo "</font>";
+	echo "</h3>";
+
 	if(isset($_REQUEST["c"]))
-		$q = "select `call`, count(*) c, count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() and (`call` like ? or raw like ?) group by `call` order by c desc";
+		$q = "select `call`, count(*) c, count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() group by `call` order by c desc";
 	else if(isset($_REQUEST["d"]))
-		$q = "select `call`, count(*), count(distinct(concat(lon,lat))) c from aprspacket where tm>curdate() and (`call` like ? or raw like ?) group by `call` order by c desc";
+		$q = "select `call`, count(*), count(distinct(concat(lon,lat))) c from aprspacket where tm>curdate() group by `call` order by c desc";
 	else
-		$q = "select `call`, count(*), count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() and (`call` like ? or raw like ?) group by `call`";
+		$q = "select `call`, count(*), count(distinct(concat(lon,lat))) from aprspacket where tm>curdate() group by `call`";
 	$stmt=$mysqli->prepare($q);
-	$stmt->bind_param("ss",$str,$str);
 	$stmt->execute();
 	$stmt->bind_result($r[0],$r[1],$r[2]);
 	$stmt->store_result();	

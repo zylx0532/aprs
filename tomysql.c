@@ -123,6 +123,62 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 		err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 	}
 
+
+// 检查位置是否变化，
+	end = my_stpcpy(sqlbuf, "select `call` from lastpacket where curdate()=date(tm) and `call`='");
+	end += mysql_real_escape_string(mysql, end, call, strlen(call));
+	end = my_stpcpy(end, "' and datatype='");
+	end += mysql_real_escape_string(mysql, end, &datatype, 1);
+	end = my_stpcpy(end, "' and lat='");
+	end = my_stpcpy(end, lat);
+	end = my_stpcpy(end, "' and lon='");
+	end = my_stpcpy(end, lon);
+	end = my_stpcpy(end, "' and `table`='");
+	end += mysql_real_escape_string(mysql, end, &table, 1);
+	end = my_stpcpy(end, "' and symbol='");
+	end += mysql_real_escape_string(mysql, end, &symbol, 1);
+	end = my_stpcpy(end, "'");
+	*end = 0;
+	if (debug)
+		err_msg("%s\n", sqlbuf);
+	if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
+		err_quit("Failed to check last postion, Error: %s\n", mysql_error(mysql));
+	}
+
+	MYSQL_RES * res;
+	res = mysql_store_result(mysql);
+	if(res==NULL) {
+		err_quit("Failed to store_result, Error: %s\n", mysql_error(mysql));
+	}
+	int newpos = (mysql_num_rows(res)==0);   // 新位置
+	mysql_free_result(res);	
+
+	if(newpos) {  // 新位置，数据包放入 posaprspacket
+		if(debug) err_msg("NEW POSTION packet\n");	
+		end = my_stpcpy(sqlbuf, "INSERT INTO posaprspacket (tm,`call`,datatype,lat,lon,`table`,symbol,msg) VALUES(now(),'");
+		end += mysql_real_escape_string(mysql, end, call, strlen(call));
+		end = my_stpcpy(end, "','");
+		end += mysql_real_escape_string(mysql, end, &datatype, 1);
+		end = my_stpcpy(end, "','");
+		end = my_stpcpy(end, lat);
+		end = my_stpcpy(end, "','");
+		end = my_stpcpy(end, lon);
+		end = my_stpcpy(end, "','");
+		end += mysql_real_escape_string(mysql, end, &table, 1);
+		end = my_stpcpy(end, "','");
+		end += mysql_real_escape_string(mysql, end, &symbol, 1);
+		end = my_stpcpy(end, "','");
+		end += mysql_real_escape_string(mysql, end, msg, strlen(msg));
+		end = my_stpcpy(end, "')");
+		*end = 0;
+		if (debug)
+			err_msg("%s\n", sqlbuf);
+		if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
+			err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
+		}
+	} else if(debug) 
+		err_msg("OLD POSTION packet\n");	
+	
 	end = my_stpcpy(sqlbuf, "REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
 	end += mysql_real_escape_string(mysql, end, call, strlen(call));
 	end = my_stpcpy(end, "','");

@@ -70,6 +70,20 @@ CREATE TABLE `aprspacket` (
   KEY `call_tm` (`call`,`tm`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE `posaprspacket` (
+  `tm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `call` varchar(16) NOT NULL,
+  `datatype` char(1) NOT NULL,
+  `lat` char(8) NOT NULL,
+  `lon` char(9) NOT NULL,
+  `table` char(1) NOT NULL,
+  `symbol` char(1) NOT NULL,
+  `msg` varchar(200) NOT NULL,
+  KEY `tm` (`tm`),
+  KEY `tm_call` (`tm`,`call`),
+  KEY `call_tm` (`call`,`tm`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 CREATE TABLE `lastpacket` (
   `call` varchar(16) NOT NULL,
   `tm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

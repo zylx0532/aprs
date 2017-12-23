@@ -173,7 +173,7 @@ int process_gumi(int c_fd, unsigned char cmd)
 	int n;
 	int pkt_len;
 	char *call;
-	static char imei[20];
+	static unsigned char imei[20];
 	static char last_aprs[200];	// last aprs_head
 
 	n = Readn(c_fd, buf, 2);	// read packet len
@@ -186,8 +186,10 @@ int process_gumi(int c_fd, unsigned char cmd)
 			exit(0);
 		}
 	n = Readn(c_fd, buf + 5, pkt_len);
-	if (n != pkt_len)
+	if (n != pkt_len) {
+		err_msg("gumi: I want %, read %d\n", pkt_len, n);
 		exit(0);
+	}
 	if (debug) {
 		fprintf(stderr, "gumi: 0x67 0x67 cmd=%02X len=%d\n", cmd, pkt_len);
 		dump_pkt(buf + 5, n);
@@ -301,6 +303,7 @@ int process_gumi(int c_fd, unsigned char cmd)
 		Write(c_fd, buf, 7);
 		return 1;
 	}
+	err_msg("cmd = %02X, len=%d, I do not know how to deal\n", cmd, pkt_len);
 	return 0;
 }
 

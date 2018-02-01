@@ -1375,6 +1375,8 @@ if ($cmd=="ge") {
 	echo "<option value=\"120\">2分钟</option>";
 	echo "<option value=\"300\">5分钟</option>";
 	echo "<option value=\"600\">10分钟</option>";
+	echo "<option value=\"1800\">30分钟</option>";
+	echo "<option value=\"3600\">60分钟</option>";
 	echo "</select> 在Google Earth停留时数据更新间隔<p>";
 	echo "忽略高度数据：<input name=alt type=checkbox checked> 显示路径时忽略高度数据，贴地面<p>\n";
 	echo "仅显示视线内：<input name=inview type=checkbox> 显示视线经纬度±0.5°内站点，避免超过屏幕对象限制<p>\n";

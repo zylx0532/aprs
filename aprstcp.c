@@ -93,9 +93,23 @@ void Process(int c_fd)
 	if (getsockname(r_fd, (struct sockaddr *)&sa, (socklen_t *) & salen) == 0)
 		strncpy(srcaddr, PrintAddr((struct sockaddr *)&sa), MAXLEN);
 
-	int enable = 1;
-	setsockopt(c_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&enable, sizeof(enable));
-	setsockopt(r_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&enable, sizeof(enable));
+	int optval = 1;
+        socklen_t optlen = sizeof(optval);
+	setsockopt(c_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, optlen);
+	setsockopt(r_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&optval, optlen);
+
+        setsockopt(c_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
+        setsockopt(r_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
+        optval = 3;
+        setsockopt(c_fd, SOL_TCP, TCP_KEEPCNT, &optval, optlen);
+        setsockopt(r_fd, SOL_TCP, TCP_KEEPCNT, &optval, optlen);
+        optval = 120;
+        setsockopt(c_fd, SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
+        setsockopt(r_fd, SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
+        optval = 5;
+        setsockopt(c_fd, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
+        setsockopt(r_fd, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
+
 
 	while (1) {
 		FD_ZERO(&rset);

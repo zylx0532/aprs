@@ -32,6 +32,7 @@ aprstcp [ -d ] local_ip local_port remote_ip remote_port
 #include <ctype.h>
 
 #define MAXLEN 16384
+#define MAXADDRLEN 100
 
 #define PORT 14580
 
@@ -40,7 +41,7 @@ int debug = 0;
 char *laddr, *lport, *raddr, *rport;
 unsigned long fwd, rfwd;
 int r_fd, c_fd;
-char scaddr[MAXLEN], sladdr[MAXLEN], sraddr[MAXLEN], srcaddr[MAXLEN];
+char scaddr[MAXADDRLEN], sladdr[MAXADDRLEN], sraddr[MAXADDRLEN], srcaddr[MAXADDRLEN];
 
 #include "printaddr.c"
 
@@ -81,17 +82,17 @@ void Process(int c_fd)
 	scaddr[0] = sladdr[0] = sraddr[0] = srcaddr[0] = 0;
 	salen = sizeof(sa);
 	if (getpeername(c_fd, (struct sockaddr *)&sa, (socklen_t *) & salen) == 0)
-		strncpy(scaddr, PrintAddr((struct sockaddr *)&sa), MAXLEN);
+		strncpy(scaddr, PrintAddr((struct sockaddr *)&sa), MAXADDRLEN);
 	salen = sizeof(sa);
 	if (getsockname(c_fd, (struct sockaddr *)&sa, (socklen_t *) & salen) == 0)
-		strncpy(sladdr, PrintAddr((struct sockaddr *)&sa), MAXLEN);
+		strncpy(sladdr, PrintAddr((struct sockaddr *)&sa), MAXADDRLEN);
 
 	salen = sizeof(sa);
 	if (getpeername(r_fd, (struct sockaddr *)&sa, (socklen_t *) & salen) == 0)
-		strncpy(sraddr, PrintAddr((struct sockaddr *)&sa), MAXLEN);
+		strncpy(sraddr, PrintAddr((struct sockaddr *)&sa), MAXADDRLEN);
 	salen = sizeof(sa);
 	if (getsockname(r_fd, (struct sockaddr *)&sa, (socklen_t *) & salen) == 0)
-		strncpy(srcaddr, PrintAddr((struct sockaddr *)&sa), MAXLEN);
+		strncpy(srcaddr, PrintAddr((struct sockaddr *)&sa), MAXADDRLEN);
 
 	int optval = 1;
         socklen_t optlen = sizeof(optval);

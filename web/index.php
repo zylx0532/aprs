@@ -1357,16 +1357,30 @@ if ($cmd=="ge") {
 	$span = $_SESSION["span"];
 	echo "<form action=ge.php method=POST>";
 	echo "<input name=kml type=hidden>";
-	echo "显示历史天数：";
+	echo "站点历史时间：";
 	echo "<select name=span>";
-	for ( $i=1; $i<8; $i++) {
-		if ( $i==$span )
-			echo "<option value=\"$i\" selected=\"selected\">".$i."天</option>";
-		else
-			echo "<option value=\"$i\">".$i."天</option>";
-	}
+	echo "<option value=\"4\">4小时</option>";
+	echo "<option value=\"8\">8小时</option>";
+	echo "<option value=\"12\">12小时</option>";
+	echo "<option value=\"24\" selected=\"selected\">1天</option>";
+	echo "<option value=\"48\">2天</option>";
+	echo "<option value=\"96\">4天</option>";
 	echo "</select>";
-	echo " 选择2天，则显示从昨天00:00开始的台站数据和轨迹<p>";
+	echo " 时间内的站点都会显示<p>";
+
+	echo "站点轨迹时间：";
+	echo "<select name=spantail>";
+	echo "<option value=\"1\">1小时</option>";
+	echo "<option value=\"2\">2小时</option>";
+	echo "<option value=\"4\" selected=\"selected\">4小时</option>";
+	echo "<option value=\"8\">8小时</option>";
+	echo "<option value=\"12\">12小时</option>";
+	echo "<option value=\"24\">1天</option>";
+	echo "<option value=\"48\">2天</option>";
+	echo "<option value=\"96\">4天</option>";
+	echo "</select>";
+	echo " 时间内的轨迹都会显示<p>";
+
 	echo "数据更新间隔：";
 	echo "<select name=interval>";
 	echo "<option value=\"0\">不自动刷新</option>";
@@ -1379,7 +1393,6 @@ if ($cmd=="ge") {
 	echo "<option value=\"3600\">60分钟</option>";
 	echo "</select> 在Google Earth停留时数据更新间隔<p>";
 	echo "忽略高度数据：<input name=alt type=checkbox checked> 显示路径时忽略高度数据，贴地面<p>\n";
-	echo "仅显示视线内：<input name=inview type=checkbox> 显示视线经纬度±0.5°内站点，避免超过屏幕对象限制<p>\n";
 	echo "路径显示优化：<input name=opt type=checkbox> 放大后才显示路径，提高速度\n";
 	echo "<p><input type=submit value=\"启动Google Earth\">";
 	echo "<p>";

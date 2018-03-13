@@ -21,16 +21,14 @@ $po = strripos($urlf,"/");
 $baseurl = substr($urlf,0,$po+1);
 
 $span = intval(@$_REQUEST["span"]);
-
-if ( ($span<=0) || ($span>10) ) $span = 2;  // default 2 days data
+if ( ($span<=0) || ($span>96) ) $span = 24;  // default 24 hour data
+$spantail = intval(@$_REQUEST["spantail"]);
+if ( ($spantail<=0) || ($spantail>96) ) $spantail = 4;  // default 4 hour data
+if($spantail>$span) $spantail=$span;
 
 $opt = 0;
 if ( isset($_REQUEST["opt"])) 
 	$opt = 1;
-
-$inview = 0;
-if ( isset($_REQUEST["inview"])) 
-	$inview = 1;
 
 $altmode = 0;		// GPS 高度
 if ( isset($_REQUEST["alt"])) 
@@ -54,9 +52,8 @@ if (isset($_REQUEST["kml"])) {
 //	echo "<p>APRS object of server ".$_SERVER["HTTP_HOST"]."</p>\n";
 //	echo "]]></description>\n";
 	echo "<Link>\n";
-	echo "<href>".$urlf."?span=".$span;
+	echo "<href>".$urlf."?span=".$span."&amp;spantail=".$spantail;
 	if ($opt==1) echo "&amp;opt=1";
-	if ($inview==1) echo "&amp;inview=1";
 	if ($altmode==1) echo "&amp;alt=1";
 	echo "</href>\n";
 	echo "<viewRefreshMode>onStop</viewRefreshMode>\n";
@@ -73,10 +70,13 @@ if (isset($_REQUEST["kml"])) {
 	exit(0);
 }
 
-$span--;
 $startdate=date_create();
-date_sub($startdate,date_interval_create_from_date_string("$span days"));
-$startdatestr=date_format($startdate,"Y-m-d 00:00:00");
+date_sub($startdate,date_interval_create_from_date_string("$span hour"));
+$startdatestr=date_format($startdate,"Y-m-d H:i:s");
+
+$startdatetail=date_create();
+date_sub($startdatetail,date_interval_create_from_date_string("$spantail hour"));
+$startdatetailstr=date_format($startdatetail,"Y-m-d H:i:s");
 
 $disppath=0;
 
@@ -88,9 +88,9 @@ if (isset($_REQUEST["BBOX"])) {
 	$lat1 = $ll[1];
 	$lat2 = $ll[3];
 } else {
-	$lon1=0;
+	$lon1=-180;
 	$lon2=180;
-	$lat1=0;
+	$lat1=-90;
 	$lat2=90;
 }
 
@@ -220,14 +220,14 @@ function strtolat($glat) {
 	$lat = substr($glat,0,2) + substr($glat,2,5)/60;
 	if(substr($glat,7,1)=='S')
 		$lat = -$lat;
-	return $lat;
+	return round($lat,6);
 }
 function strtolon($glon) {
 	$lon = 0;
 	$lon = substr($glon,0,3) + substr($glon,3,5)/60;
 	if(substr($glon,8,1)=='W')
 		$lon = -$lon;
-	return $lon;
+	return round($lon,6);
 }
 
 function kml_alt($msg, $ddt) {
@@ -328,14 +328,21 @@ $stmt->fetch();
 echo "<name>".$cnt." stations</name>\n";
 $stmt->close();
 
-echo "<Snippet>tracks during past 2 days</Snippet>\n";
-$q="select `call`,concat(`table`,symbol) from lastpacket where tm>?";
+echo "<Snippet>tracks during past ".$span." hours</Snippet>\n";
+$q="select `call`,concat(`table`,symbol),lat,lon from lastpacket where tm>?";
 $stmt=$mysqli->prepare($q);
 $stmt->bind_param("s",$startdatestr);
 $stmt->execute();
-$stmt->bind_result($call,$dts);
+$stmt->bind_result($call,$dts,$glat,$glon);
 $stmt->store_result();	
 while($stmt->fetch()) {
+	if(!checklatlon($glat, $glon)) continue; 
+        $lat = strtolat($glat);
+        $lon = strtolon($glon);
+	if($lat<$lat1-0.005) continue;
+	if($lat>$lat2+0.005) continue;
+	if($lon<$lon1-0.005) continue;
+	if($lon>$lon2+0.005) continue;
 	echo "<Style id=\"st";
 	echo md5($call);
 	echo "\">\n";
@@ -371,12 +378,10 @@ while($stmt->fetch()) {
 	if(!checklatlon($glat, $glon)) continue; 
         $lat = strtolat($glat);
         $lon = strtolon($glon);
-	if($inview==1) {
-		if($lat<$lat1-0.5) continue;
-		if($lat>$lat2+0.5) continue;
-		if($lon<$lon1-0.5) continue;
-		if($lon>$lon2+0.5) continue;
-	}
+	if($lat<$lat1-0.005) continue;
+	if($lat>$lat2+0.005) continue;
+	if($lon<$lon1-0.005) continue;
+	if($lon>$lon2+0.005) continue;
 	echo "<Placemark>\n";
 	echo "  <name>".$call."</name>\n";
 	echo "  <description><![CDATA[\n";
@@ -401,7 +406,7 @@ while($stmt->fetch()) {
 if($disppath==1) {
 	$q = "select lat,lon,msg,datatype from posaprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' order by `tm`";
 	$stmt2=$mysqli->prepare($q);
-	$stmt2->bind_param("ss",$startdatestr,$call);
+	$stmt2->bind_param("ss",$startdatetailstr,$call);
 	$stmt2->execute();
 	$stmt2->bind_result($glat, $glon, $msg, $ddt);
 	$stmt2->store_result();	

@@ -29,6 +29,9 @@ if($spantail>$span) $spantail=$span;
 $opt = 0;
 if ( isset($_REQUEST["opt"])) 
 	$opt = 1;
+$deltar = 0.05;
+if ( isset($_REQUEST["r"])) 
+	$deltar = $_REQUEST["r"];
 
 $altmode = 0;		// GPS 高度
 if ( isset($_REQUEST["alt"])) 
@@ -55,6 +58,7 @@ if (isset($_REQUEST["kml"])) {
 	echo "<href>".$urlf."?span=".$span."&amp;spantail=".$spantail;
 	if ($opt==1) echo "&amp;opt=1";
 	if ($altmode==1) echo "&amp;alt=1";
+	echo "&amp;r=".$deltar;
 	echo "</href>\n";
 	echo "<viewRefreshMode>onStop</viewRefreshMode>\n";
 	echo "<viewRefreshTime>1</viewRefreshTime>\n";
@@ -94,7 +98,7 @@ if (isset($_REQUEST["BBOX"])) {
 	$lat2=90;
 }
 
-if(abs($lon2-$lon1)<=15)
+if(abs($lon2-$lon1)<=5)
 	$disppath=1;
 
 if($opt==0) 
@@ -339,10 +343,10 @@ while($stmt->fetch()) {
 	if(!checklatlon($glat, $glon)) continue; 
         $lat = strtolat($glat);
         $lon = strtolon($glon);
-	if($lat<$lat1-0.1) continue;
-	if($lat>$lat2+0.1) continue;
-	if($lon<$lon1-0.1) continue;
-	if($lon>$lon2+0.1) continue;
+	if($lat<$lat1-$deltar) continue;
+	if($lat>$lat2+$deltar) continue;
+	if($lon<$lon1-$deltar) continue;
+	if($lon>$lon2+$deltar) continue;
 	echo "<Style id=\"st";
 	echo md5($call);
 	echo "\">\n";
@@ -378,10 +382,10 @@ while($stmt->fetch()) {
 	if(!checklatlon($glat, $glon)) continue; 
         $lat = strtolat($glat);
         $lon = strtolon($glon);
-	if($lat<$lat1-0.1) continue;
-	if($lat>$lat2+0.1) continue;
-	if($lon<$lon1-0.1) continue;
-	if($lon>$lon2+0.1) continue;
+	if($lat<$lat1-$deltar) continue;
+	if($lat>$lat2+$deltar) continue;
+	if($lon<$lon1-$deltar) continue;
+	if($lon>$lon2+$deltar) continue;
 	echo "<Placemark>\n";
 	echo "  <name>".$call."</name>\n";
 	echo "  <description><![CDATA[\n";

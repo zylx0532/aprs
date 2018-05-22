@@ -45,7 +45,7 @@ include "GpsPositionTransform.class.php";
 		$y=($y-intval($y))*60;
 		echo sprintf("%02.0f",intval($y))."\"<br>";
 
-		echo "GPS x = ".sprintf("%.0f",$x)."º";
+		echo "GPS x = ".intval($x)."º";
 		$x=($x-intval($x))*60;
 		echo sprintf("%02.0f",intval($x))."'";
 		$x=($x-intval($x))*60;

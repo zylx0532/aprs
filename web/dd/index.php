@@ -140,7 +140,7 @@ echo "</table>";
 <div id=out><?php if($msg!="") echo "<font color=green>".$msg."</font>"; ?></div>
 
 <p>
-<h3>发送轨迹文件(klm格式)</h3>
+<h3>发送轨迹文件(kml格式)</h3>
 <form enctype="multipart/form-data" action="index.php" method="POST">
 <!-- MAX_FILE_SIZE must precede the file input field -->
 <input type="hidden" name="MAX_FILE_SIZE" value="300000" />

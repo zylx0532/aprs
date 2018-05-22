@@ -28,6 +28,41 @@ function sendaprs($call, $lat, $lon, $desc, $ts)
 	$msg = date("Y-m-d H:i:s ").$msg;
 }
 
+if( @$_REQUEST["track"] ==1 ) {
+	$call =@$_REQUEST["call"];
+	$ts =@$_REQUEST["ts"];
+
+	$handle = @fopen($_FILES['userfile']['tmp_name'], "r");
+	$iscoor=0;
+	$oldmsg="";
+	if ($handle) {
+    		while (($buffer = fgets($handle, 4096)) !== false) {
+			if(strpos($buffer,"<coordinates>")!==false) {
+				$iscoor=1;
+				continue;
+			} 
+			if(strpos($buffer,"</coordinates>")!==false) {
+				break;
+			}
+			if($iscoor) {
+				$buffer=trim($buffer);
+				//echo "get ".$buffer."<br>";
+				$r=explode(",",$buffer);
+				//echo $r[0]."/".$r[1]."/".$r[2]."<br>";
+				$newmsg = sprintf("%02d%05.2f", floor($$r[0]), ($r[0]-floor($r[0]))*60);
+				$newmsg = $newmsg.sprintf("%03d%05.2f", floor($r[1]), ($r[1]-floor($r[1]))*60);
+				if($oldmsg==$newmsg) // duplicate msg
+					continue;
+				$oldmsg=$newmsg;
+				sendaprs($call,$r[1],$r[0],$r[2],$ts);
+				echo ".";
+				flush();
+				sleep(1);
+			}
+    		}
+	}
+
+} 
 $call =@$_REQUEST["call"];
 $lat =@$_REQUEST["lat"];
 $lon =@$_REQUEST["lon"];
@@ -93,7 +128,7 @@ echo "<tr><td>消息：</td><td><input name=desc value=\"".$desc."\"></td></tr>\
 echo "<tr><td colspan=2 align=center><br><button type=button onClick=\"get_location();\">当前位置</button>&nbsp;&nbsp;&nbsp;";
 echo "<input type=submit value=\"发送信息\"></input></td></tr>\n";
 echo "</table>";
-echo "</from><p>";
+echo "</form><p>";
 echo "经纬度格式（依据小数点数或数字位数）<br>\n";
 echo "<table>";
 echo "<tr><td>ddd.dddddd</td><td>度.度</td><td>31.12035º</td></tr>";
@@ -103,6 +138,19 @@ echo "</table>";
 ?>
 
 <div id=out><?php if($msg!="") echo "<font color=green>".$msg."</font>"; ?></div>
+
+<p>
+<h3>发送轨迹文件(klm格式)</h3>
+<form enctype="multipart/form-data" action="index.php" method="POST">
+<!-- MAX_FILE_SIZE must precede the file input field -->
+<input type="hidden" name="MAX_FILE_SIZE" value="300000" />
+<input type=hidden name=track value=1>
+<!-- Name of input element determines name in $_FILES array -->
+轨迹文件(kml): <input name="userfile" type="file" /><br>
+呼号：<input name=call><br>
+类型：<input name=ts value="/$"><br>
+<input type="submit" value="发送轨迹" />
+</form>
 
 <script type="text/javascript">
 function get_location(){

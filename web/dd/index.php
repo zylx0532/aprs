@@ -36,7 +36,7 @@ if( @$_REQUEST["track"] ==1 ) {
 	$iscoor=0;
 	$oldmsg="";
 	if ($handle) {
-    		while (($buffer = fgets($handle, 4096)) !== false) {
+    		while (($buffer = fgets($handle, 409600)) !== false) {
 			if(strpos($buffer,"<coordinates>")!==false) {
 				$iscoor=1;
 				continue;
@@ -47,17 +47,20 @@ if( @$_REQUEST["track"] ==1 ) {
 			if($iscoor) {
 				$buffer=trim($buffer);
 				//echo "get ".$buffer."<br>";
-				$r=explode(",",$buffer);
-				//echo $r[0]."/".$r[1]."/".$r[2]."<br>";
-				$newmsg = sprintf("%02d%05.2f", floor($$r[0]), ($r[0]-floor($r[0]))*60);
-				$newmsg = $newmsg.sprintf("%03d%05.2f", floor($r[1]), ($r[1]-floor($r[1]))*60);
-				if($oldmsg==$newmsg) // duplicate msg
-					continue;
-				$oldmsg=$newmsg;
-				sendaprs($call,$r[1],$r[0],$r[2],$ts);
-				echo ".";
-				flush();
-				sleep(1);
+				$s=explode(" ",$buffer);
+				foreach ( $s as $v) {
+					$r=explode(",",$v);
+					//echo $r[0]."/".$r[1]."/".$r[2]."<br>";
+					$newmsg = sprintf("%02d%05.2f", floor($$r[0]), ($r[0]-floor($r[0]))*60);
+					$newmsg = $newmsg.sprintf("%03d%05.2f", floor($r[1]), ($r[1]-floor($r[1]))*60);
+					if($oldmsg==$newmsg) // duplicate msg
+						continue;
+					$oldmsg=$newmsg;
+					sendaprs($call,$r[1],$r[0],$r[2],$ts);
+					echo ".";
+					flush();
+					sleep(1);
+				}
 			}
     		}
 	}

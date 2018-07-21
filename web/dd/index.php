@@ -71,6 +71,12 @@ $lat =@$_REQUEST["lat"];
 $lon =@$_REQUEST["lon"];
 $ts =@$_REQUEST["ts"];
 $desc =@$_REQUEST["desc"];
+$url = @$_REQUEST["url"];
+
+// http://apis.map.qq.com/uri/v1/marker?marker=coord:29.260122,120.335999;title:潘塘村:
+// http://map.qq.com/?type=marker&isopeninfowin=1&markertype=1&pointx=120.336&pointy=29.2601&name=%5B%E4%BD%8D%E7%BD%AE%5D&addr=%E6%BD%98%E5%A1%98%E6%9D%91(%E9%87%91%E5%8D%8E%E5%B8%82%E4%B8%9C%E9%98%B3%E5%B8%82%E5%9F%8E%E4%B8%9C%E8%A1%97%E9%81%93%E6%BD%98%E5%A1%98%E6%9D%91)&ref=WeChat
+
+
 
 if($ts=="") $ts="/$";
 
@@ -90,21 +96,55 @@ if($call=="") {
 	setcookie("ts",$ts,time()+24*3600*365);
 	setcookie("desc",$desc,time()+24*3600*365);
 
-	$lati = explode(".",$lat);
-	if(count($lati)<=2) 
-		$latui = $lat;
-	else if(strlen($lati[2])==3)
-		$latui = $lati[0] + ($lati[1]+$lati[2]/1000)/60;
-	else
-		$latui = $lati[0] + $lati[1]/60+$lati[2]/3600;
+	if($url != "")  {
+    		if (($u = strstr($url, "marker=coord:"))) {
+        		$u = explode(":", $u);
+        		$u = $u[1];
+        		$u = explode(";", $u);
+        		$u = $u[0];
+        		$u = explode(",", $u);
+        		$x = $u[1];
+        		$y = $u[0];
+    		} else {
+        		$u = explode("&", $url);
+        		$x = 0;
+        		$y = 0;
+        		for($i = 0; $i < count($u); $i++) {
+            			$r = explode('=', $u[$i]);
+            			if($r[0] == "pointx")
+                			$x = $r[1];
+            			else if($r[0] == "pointy")
+                			$y = $r[1];
+        		}
+    		}
+	
+		include "GpsPositionTransform.class.php";
 
-	$loni = explode(".",$lon);
-	if(count($loni)<=2) 
-		$lonui = $lon;
-	else if(strlen($loni[2])==3)
-		$lonui = $loni[0] + ($loni[1]+$loni[2]/1000)/60;
-	else
-		$lonui = $loni[0] + $loni[1]/60 +$loni[2]/3600;
+    		if(GpsPositionTransform::outOfChina($y, $x)) {
+    		} else {
+        		$r = GpsPositionTransform::gcj_To_Gps84($y, $x);
+        		$x = $r["lon"];
+        		$y = $r["lat"];
+    		}
+		$latui = $y;
+		$lonui = $x;
+	} else {
+		$lati = explode(".",$lat);
+		if(count($lati)<=2) 
+			$latui = $lat;
+		else if(strlen($lati[2])==3)
+			$latui = $lati[0] + ($lati[1]+$lati[2]/1000)/60;
+		else
+			$latui = $lati[0] + $lati[1]/60+$lati[2]/3600;
+
+		$loni = explode(".",$lon);
+		if(count($loni)<=2) 
+			$lonui = $lon;
+		else if(strlen($loni[2])==3)
+			$lonui = $loni[0] + ($loni[1]+$loni[2]/1000)/60;
+		else
+			$lonui = $loni[0] + $loni[1]/60 +$loni[2]/3600;
+	}
 }
 ?>
 
@@ -128,7 +168,9 @@ echo "<tr><td>纬度：</td><td><input id=lat name=lat value=\"".$lat."\"></td><
 echo "<tr><td>经度：</td><td><input id=lon name=lon value=\"".$lon."\"></td></tr>\n";
 echo "<tr><td>类型：</td><td><input name=ts value=\"".$ts."\"></td></tr>\n";
 echo "<tr><td>消息：</td><td><input name=desc value=\"".$desc."\"></td></tr>\n";
-echo "<tr><td colspan=2 align=center><br><button type=button onClick=\"get_location();\">当前位置</button>&nbsp;&nbsp;&nbsp;";
+echo "<tr><td>微信：</td><td><input name=url size=200></td></tr>\n";
+echo "<tr><td colspan=2>如果提供了微信位置链接，将从微信链接获取经纬度信息</td></tr>\n";
+echo "<tr><td colspan=2><br><button type=button onClick=\"get_location();\">当前位置</button>&nbsp;&nbsp;&nbsp;";
 echo "<input type=submit value=\"发送信息\"></input></td></tr>\n";
 echo "</table>";
 echo "</form><p>";

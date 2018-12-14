@@ -45,7 +45,10 @@ $m = $m.sprintf("%s", $msg);
 if($battery!="") 
 	$m = $m.sprintf(" 电量=%s", $battery);
 if($gsm_signal!="") 
-	$m = $m.sprintf(" 信号=%s", $gsm_signal);
+	if($gsm_signal==0) 
+		$m = $m.sprintf(" WiFi/4G");
+	else
+		$m = $m.sprintf(" 信号=%s", $gsm_signal);
 $m = $m.sprintf("%s", "\r\n");
 
 //	echo $m;

@@ -43,9 +43,9 @@ $m = $m.sprintf("%03d%05.2f%s%s", floor($lon), ($lon-floor($lon))*60, $E, substr
 $m = $m.sprintf("%03d/%03d/A=%06d", $bearing, $speed*2.237, $alt*3.28);
 $m = $m.sprintf("%s", $msg);
 if($battery!="") 
-	$m = $m.sprintf(" battery=%s", $battery);
+	$m = $m.sprintf(" 电量=%s", $battery);
 if($gsm_signal!="") 
-	$m = $m.sprintf(" gsm_signal=%s", $gsm_signal);
+	$m = $m.sprintf(" 信号=%s", $gsm_signal);
 $m = $m.sprintf("%s", "\r\n");
 
 //	echo $m;

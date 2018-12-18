@@ -27,10 +27,10 @@ local.toaprs: local.toaprs.c passcode.c
 gt02: gt02.c printaddr.c
 	gcc -g -o gt02 gt02.c	 -Wall -lm
 udptomysql: udptomysql.c db.h tomysql.c
-	gcc -g -o udptomysql udptomysql.c -Wall -lmysqlclient -L/usr/lib64/mysql/
+	gcc -g -o udptomysql udptomysql.c -Wall -lmysqlclient -lm -L/usr/lib64/mysql/
 
 udptomysql2: udptomysql2.c db.h tomysql2.c
-	gcc -g -o udptomysql2 udptomysql2.c -Wall -lmysqlclient -L/usr/lib64/mysql/
+	gcc -g -o udptomysql2 udptomysql2.c -Wall -lmysqlclient -lm -L/usr/lib64/mysql/
 indent:
 	indent aprsudp.c sendudp.c aprs.fi.toudp.c  passcode.c local.toudp.c local.toaprs.c aprscmdtcp.c aprstcp.c gt02.c udptoaprs.c udptolocal.c udptomysql.c tomysql.c aprstomysql.c udptomysql2.c tomysql2.c resendaprs.c -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4  \
 -cli0 -d0 -di1 -nfc1 -i8 -ip0 -l160 -lp -npcs -nprs -npsl -sai \

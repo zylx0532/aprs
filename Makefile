@@ -9,7 +9,7 @@ aprscmdtcp: aprscmdtcp.c sendudp.c sock.h printaddr.c
 udptoaprs: udptoaprs.c passcode.c
 	gcc -o udptoaprs udptoaprs.c -Wall
 aprstomysql: aprstomysql.c db.h tomysql.c sock.h sendudp.c
-	gcc -g -o aprstomysql aprstomysql.c -Wall -lmysqlclient -L/usr/lib64/mysql/
+	gcc -g -o aprstomysql aprstomysql.c -Wall -lmysqlclient -lm -L/usr/lib64/mysql/
 resendaprs: resendaprs.c sendudp.c
 	gcc -g -o resendaprs resendaprs.c  -Wall
 

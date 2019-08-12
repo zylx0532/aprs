@@ -456,6 +456,7 @@ function disp_map($call) {
 	echo "<a href=\"http://aprs.hamclub.net/mtracker/map/aprs/".$call."\" target=_blank>hamclub</a> ";
 	echo "<a href=\"http://aprs.hellocq.net/\" target=_blank>hellocq</a> ";
 	echo "<a href=\"".$_SERVER["PHP_SELF"]."?map&call=".$call."\" target=_blank>本站</a> ";
+	echo "<a href=\"track.php?call=".$call."\" target=_blank>本站轨迹</a> ";
 }
 
 function top_menu() {

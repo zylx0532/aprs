@@ -54,9 +54,10 @@ if ($url_array[0] == "getlastcall") {
 			else
 				echo "\n";
 			echo "{\"id\": $count, ";
- 			echo "\"width\": 52.5, \"height\": 30, "; 
+ 			echo "\"width\": 24, \"height\": 24, "; 
         		echo "\"iconPath\": \"$icon\", ";
-        		echo "\"callname\":\"$call\", ";
+        		// echo "\"callname\":\"$call\", ";
+        		echo "\"callout\": { \"content\": \"$call\", \"padding\": 10, \"display\": \"ALWAYS\", \"textAlign\": \"center\" }, ";
         		echo "\"latitude\": $lat, ";
         		echo "\"longitude\": $lon, ";
 			echo "\"timestamp\": \"$dtmstr\" }";

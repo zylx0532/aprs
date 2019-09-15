@@ -41,7 +41,7 @@ if ($url_array[0] == "getlastcall") {
 	$stmt->execute();
 	$stmt->bind_result($call,$glat,$glon,$dtmstr,$dts,$ddt);
 	$stmt->store_result();
-	echo "{ stations: [";
+	echo "{ \"stations\": [";
 	$count = 0;
 
 	while($stmt->fetch()) {
@@ -53,12 +53,13 @@ if ($url_array[0] == "getlastcall") {
 				echo ",\n";
 			else
 				echo "\n";
-			echo "{\"id\": $count, "; 
+			echo "{\"id\": $count, ";
+ 			echo "\"width\": 52.5, \"height\": 30, "; 
         		echo "\"iconPath\": \"$icon\", ";
         		echo "\"callname\":\"$call\", ";
         		echo "\"latitude\": $lat, ";
         		echo "\"longitude\": $lon, ";
-			echo "\"timestamp\": $dtmstr }";
+			echo "\"timestamp\": \"$dtmstr\" }";
 			$count ++;
 		}
 	} 
@@ -88,7 +89,7 @@ if ($url_array[0] == "getlastpos") {
         	echo "\"callname\":\"$call\", ";
         	echo "\"latitude\": $lat, ";
         	echo "\"longitude\": $lon, ";
-		echo "\"timestamp\": $dtmstr }";
+		echo "\"timestamp\": \"$dtmstr\" }";
 		$count ++;
 		$stmt->close();
 		exit(0);
@@ -106,7 +107,7 @@ if ($url_array[0] == "gettrack") {
 	$stmt->execute();
 	$stmt->bind_result($glat,$glon,$dtmstr,$dts,$ddt);
 	$stmt->store_result();
-	echo "{ \"callname\": \"$call\", tracks: [";
+	echo "{ \"callname\": \"$call\", \"tracks\": [";
 	$count = 0;
 
 	while($stmt->fetch()) {
@@ -121,7 +122,7 @@ if ($url_array[0] == "gettrack") {
        		echo "\"iconPath\": \"$icon\", ";
        		echo "\"latitude\": $lat, ";
        		echo "\"longitude\": $lon, ";
-		echo "\"timestamp\": $dtmstr }";
+		echo "\"timestamp\": \"$dtmstr\" }";
 		$count ++;
 	} 
 	$stmt->close();

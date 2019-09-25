@@ -116,7 +116,7 @@ int process_6868(int c_fd, int len)
 	if ((cmd == 0x1a) && (len >= 15)) {	// heart beat 
 		snprintf(last_status, 100,
 			 "Voltage:%d GSM Signal:%d Satellites:%d/%d %s",
-			 buf[3], buf[4], buf[17], len - 15,
+			 buf[3], buf[4], buf[16] == 0 ? 0 : (buf[17] <=12 ? buf[17] : 12), len - 15,
 			 buf[16] == 0 ? "Unlocated" : (buf[16] == 1 ? "Realtime GPS" : (buf[16] == 2 ? "DGPS" : "Unknown")));
 		if (debug)
 			fprintf(stderr, "status: %s\n", last_status);
@@ -167,7 +167,7 @@ int process_6868(int c_fd, int len)
 	return 1;
 }
 
-int process_gumi(int c_fd, unsigned char cmd)
+int process_gumi(int c_fd, unsigned char cmd)  //0x67 0x67
 {
 	unsigned char buf[MAXLEN];
 	int n;
@@ -209,7 +209,7 @@ int process_gumi(int c_fd, unsigned char cmd)
 			}
 			fprintf(stderr, "\n");
 		}
-		err_msg("keeplive from %02X%02X%02X%02X%02X%02X%02X%02X", imei[0], imei[1], imei[2], imei[3], imei[4], imei[5], imei[6], imei[7]);
+		err_msg("login from %02X%02X%02X%02X%02X%02X%02X%02X", imei[0], imei[1], imei[2], imei[3], imei[4], imei[5], imei[6], imei[7]);
 		buf[0] = buf[1] = 0x67;
 		buf[2] = 1;
 		buf[3] = 0;
@@ -300,10 +300,20 @@ int process_gumi(int c_fd, unsigned char cmd)
 		buf[2] = cmd;
 		buf[3] = 0;
 		buf[4] = 2;
+		err_msg("keep live");
 		Write(c_fd, buf, 7);
 		return 1;
 	}
-	err_msg("cmd = %02X, len=%d, I do not know how to deal\n", cmd, pkt_len);
+	if(cmd == 0x91) {      // unknow cmd, try empty respons
+                buf[0] = buf[1] = 0x67;
+                buf[2] = cmd;
+                buf[3] = 0;
+                buf[4] = 2;
+                err_msg("try unknow cmd");
+                Write(c_fd, buf, 7);
+                return 1;
+        }
+	err_msg("cmd = %02X, len=%d, I do not know how to deal", cmd, pkt_len);
 	return 0;
 }
 
@@ -536,13 +546,13 @@ void Process(int c_fd)
 	int optval;
 	int r;
 	socklen_t optlen = sizeof(optval);
-	optval = 200;
+	optval = 1;
 	Setsockopt(c_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
 	optval = 3;
 	Setsockopt(c_fd, SOL_TCP, TCP_KEEPCNT, &optval, optlen);
-	optval = 120;
+	optval = 240;
 	Setsockopt(c_fd, SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
-	optval = 2;
+	optval = 5;
 	Setsockopt(c_fd, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
 
 	while (1) {
@@ -563,7 +573,7 @@ void Process(int c_fd)
 			continue;
 		if (debug)
 			fprintf(stderr, "unknow packet\n");
-		err_msg("unknow packet: %02X%02X%02X\n", buffer[0], buffer[1], buffer[2]);
+		err_msg("unknow packet: %02X%02X%02X", buffer[0], buffer[1], buffer[2]);
 	}
 }
 

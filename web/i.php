@@ -142,7 +142,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 		$h = substr($msg,1,2);	//hum
 		$b = substr($msg,4,5)/10; //press
 		$msg = substr($msg,9);
-		$m = $m."<b>温度".$t."°C 湿度".$h."% 气压".$b."mpar<br>";
+		$m = $m."<b>温度".$t."°C 湿度".$h."% 气压".$b."mbar<br>";
 		$m = $m."风".$c."°".$s."m/s(大风".$g."m/s)<br>";
 	 	$m = $m."雨".$r."mm/1h ".$p."mm/24h</b><br>";
 		if(substr($msg,0,1)==',') {  // ,053,069,071,035,047,058,28.928 PM1.0 PM2.5 PM10 
@@ -194,7 +194,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 		$h = substr($msg,1,2);	//hum
 		$b = substr($msg,4,5)/10; //press
 		$msg = substr($msg,9);
-		$m = $m."<b>温度".$t."°C 湿度".$h."% 气压".$b."mpar<br>";
+		$m = $m."<b>温度".$t."°C 湿度".$h."% 气压".$b."mbar<br>";
 		$m = $m."风".$c."°".$s."m/s(大风".$g."m/s)<br>";
 	 	$m = $m."雨".$r."mm/自午夜起</b><br>";
 	}
@@ -456,6 +456,7 @@ function disp_map($call) {
 	echo "<a href=\"http://aprs.hamclub.net/mtracker/map/aprs/".$call."\" target=_blank>hamclub</a> ";
 	echo "<a href=\"http://aprs.hellocq.net/\" target=_blank>hellocq</a> ";
 	echo "<a href=\"".$_SERVER["PHP_SELF"]."?map&call=".$call."\" target=_blank>本站</a> ";
+	echo "<a href=\"track.php?call=".$call."\" target=_blank>本站轨迹</a> ";
 }
 
 function top_menu() {

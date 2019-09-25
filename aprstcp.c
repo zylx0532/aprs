@@ -205,7 +205,8 @@ int main(int argc, char *argv[])
 	if (argc - i == 0) {
 		laddr = "0.0.0.0";
 		lport = "14580";
-		raddr = "asia.aprs2.net";
+		raddr = "china.aprs2.net";
+		//raddr = "asia.aprs2.net";
 		rport = "14580";
 	} else if (argc - i == 4) {
 		laddr = argv[i];

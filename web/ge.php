@@ -212,27 +212,14 @@ function urlmessage($call,$icon, $dtmstr, $msg, $ddt) {
 }
 
 function checklatlon($glat, $glon) {
-	$s = substr($glat,7,1);
+	$s = substr($glat,-1);
 	if( $s!='S' && $s!='N' ) return false;
-	$s = substr($glon,8,1);
+	$s = substr($glon,-1;
 	if( $s!='W' && $s!='E' ) return false;
 	return true;
 }
 
-function strtolat($glat) {
-	$lat = 0;
-	$lat = substr($glat,0,2) + substr($glat,2,5)/60;
-	if(substr($glat,7,1)=='S')
-		$lat = -$lat;
-	return round($lat,6);
-}
-function strtolon($glon) {
-	$lon = 0;
-	$lon = substr($glon,0,3) + substr($glon,3,5)/60;
-	if(substr($glon,8,1)=='W')
-		$lon = -$lon;
-	return round($lon,6);
-}
+include "strtolonlat.php";
 
 function kml_alt($msg, $ddt) {
 	$alt = 0;

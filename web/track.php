@@ -310,20 +310,7 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 	return $m;	
 }
 
-function strtolat($glat) {
-	$lat = 0;
-	$lat = substr($glat,0,2) + substr($glat,2,5)/60;
-	if(substr($glat,7,1)=='S')
-		$lat = -$lat;
-	return $lat;
-}
-function strtolon($glon) {
-	$lon = 0;
-	$lon = substr($glon,0,3) + substr($glon,3,5)/60;
-	if(substr($glon,8,1)=='W')
-		$lon = -$lon;
-	return $lon;
-}
+include "strtolonlat.php";
 
 $span=$_SESSION["span"];  	
 $q="select lat,lon,tm,concat(`table`,symbol),msg,datatype from posaprspacket where tm>? and `call`=? and lat<>'' and not lat like '0000.00%' order by tm limit 50000";

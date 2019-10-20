@@ -81,8 +81,8 @@ void aprspacket_high_to_low(char *buf, int len, int *high_res, char **low_res, i
 	*high_res = 0;
 	*low_res = buf;
 	*low_len = len;
-	p = strchr(buf, ':');
-	if (p && ((*(p + 1) == ',') || isdigit(*(p + 9)))) {
+	p = memchr(buf, ':', len);
+	if (p && (len - (p - buf) >= 26) && ((*(p + 1) == ',') || (*(p + 1) == '!'))) {
 		*high_res = 1;
 		memcpy(low_res_buf, buf, len);
 		*low_len = len;
@@ -90,10 +90,10 @@ void aprspacket_high_to_low(char *buf, int len, int *high_res, char **low_res, i
 		if (*(p + 1) == ',')
 			*(p + 1) = '!';
 		p = p + 9;	// now p point to 0 (3th char)
-		memmove(p, p + 3, *low_len - (p - low_res_buf));
+		memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
 		p = p + 10;
 		*low_len -= 3;
-		memmove(p, p + 3, *low_len - (p - low_res_buf));
+		memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
 		*low_len -= 3;
 		if (debug)
 			fprintf(stderr, "new APRS: %s\n", low_res_buf);

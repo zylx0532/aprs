@@ -56,51 +56,38 @@ void PrintStats(void)
 
 #include "sendudp.c"
 
+#include "util.c"
+
 void relayaprs(char *buf, int len, int r_fd)
 {
-// BH4WAD-8>AP51G2:!3215.79N/11943.80E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
-// BH4WAD-8>AP51G2:!3215.7901N/11943.8002E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
-// 对于这样的一行，我这样处理：
-// 先查找:字符，然后看后面第9个字符是字母还是数字，如果是字母（上面是N）说明是之前的格式，如果是数字，说明是高精度格式
-	char buffer[MAXLEN];
+	char *low_res, *trans_res;
 	int high_res = 0;
-	int new_len = 0;
-	char *p;
+	int low_len = 0;
+	int trans_len = 0;
 	if (debug)
 		fprintf(stderr, "OLD APRS: %s\n", buf);
-	strncpy(buffer, buf, MAXLEN);
-	p = strchr(buf, ':');
-	if (p && (strlen(p) > 19) && isdigit(p[9])) {
-		high_res = 1;
-		memcpy(buffer, buf, len);
-		new_len = len;
-		p = p + 9;
-		p = buffer + (p - buf);	// now p point to 0 (3th char)
-		memmove(p, p + 2, new_len - (p - buffer));
-		p = p + 10;
-		new_len -= 2;
-		memmove(p, p + 2, new_len - (p - buffer));
-		new_len -= 2;
-		if (debug)
-			fprintf(stderr, "new APRS: %s\n", buffer);
-	}
+	aprspacket_high_to_low(buf, len, &high_res, &low_res, &low_len);
 	if (high_res) {
-		Write(r_fd, buffer, new_len);
-		sendudp(buffer, new_len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
-		sendudp(buffer, new_len, "106.15.35.48", 14580);	// forward to ouxun server
+		aprspacket_gps_to_trans(low_res, low_len, &trans_res, &trans_len);
 	} else {
-		Write(r_fd, buf, len);
-		sendudp(buf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
-		sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
+		trans_res = buf;
+		trans_len = len;
 	}
+	if (debug) {
+		fprintf(stderr, "LOW  : %s\n", low_res);
+		fprintf(stderr, "TRANS: %s\n", trans_res);
+	}
+
+	if (debug)
+		fprintf(stderr, "send to arps: %s\n", trans_res);
+
+	Write(r_fd, trans_res, trans_len);
+	sendudp(low_res, low_len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
+	sendudp(low_res, low_len, "106.15.35.48", 14580);	// forward to ouxun server
 	sendudp(buf, len, "127.0.0.1", 14582);	// udptolog
 	sendudp(buf, len, "127.0.0.1", 14583);	// udptomysql
-	if (strstr(buf, "-13>")) {
-		if (high_res)
-			sendudp(buffer, new_len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
-		else
-			sendudp(buf, len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
-	}
+	if (strstr(buf, "-13>"))
+		sendudp(low_res, low_len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
 }
 
 void Process(int c_fd)

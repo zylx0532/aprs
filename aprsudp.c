@@ -56,15 +56,38 @@ void insertU(char *buf, int *len)
 	(*len) += 4;
 }
 
+#include "util.c"
+
 void relayaprs(char *buf, int len)
 {
+	char *low_res, *trans_res;
+	int high_res = 0;
+	int low_len = 0;
+	int trans_len = 0;
 	if (debug)
 		fprintf(stderr, "recv len=%d from UDP: %s", len, buf);
-	sendudp(buf, len, "127.0.0.1", 14581);	// forward to asia.aprs2.net
-	sendudp(buf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
-	sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
+	if (debug)
+		fprintf(stderr, "OLD APRS: %s\n", buf);
+	aprspacket_high_to_low(buf, len, &high_res, &low_res, &low_len);
+	if (high_res) {
+		aprspacket_gps_to_trans(low_res, low_len, &trans_res, &trans_len);
+	} else {
+		trans_res = buf;
+		trans_len = len;
+	}
+	if (debug) {
+		fprintf(stderr, "LOW  : %s\n", low_res);
+		fprintf(stderr, "TRANS: %s\n", trans_res);
+	}
+
+	if (debug)
+		fprintf(stderr, "send to arps: %s\n", trans_res);
+
+	sendudp(trans_res, trans_len, "127.0.0.1", 14581);	// forward to asia.aprs2.net
+	sendudp(low_res, low_len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
+	sendudp(low_res, low_len, "106.15.35.48", 14580);	// forward to ouxun server
 	if (strstr(buf, "-13>"))
-		sendudp(buf, len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
+		sendudp(low_res, low_len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
 	insertU(buf, &len);
 	sendudp(buf, len, "127.0.0.1", 14582);	// udptolog
 	sendudp(buf, len, "127.0.0.1", 14583);	// udptomysql 

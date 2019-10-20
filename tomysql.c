@@ -75,9 +75,11 @@ int checklat(char *s)
 		return 0;
 	if (!isdigit(*(s + 8)) && (*(s + 8) != ' '))
 		return 0;
-	if (*(s + 9) == 'N')
+	if (!isdigit(*(s + 9)) && (*(s + 9) != ' '))
+		return 0;
+	if (*(s + 10) == 'N')
 		return 2;
-	if (*(s + 9) == 'S')
+	if (*(s + 10) == 'S')
 		return 2;
 	return 0;
 }
@@ -108,9 +110,11 @@ int checklon(char *s)
 		return 0;
 	if (!isdigit(*(s + 9)) && (*(s + 9) != ' '))
 		return 0;
-	if (*(s + 10) == 'E')
+	if (!isdigit(*(s + 10)) && (*(s + 10) != ' '))
+		return 0;
+	if (*(s + 11) == 'E')
 		return 2;
-	if (*(s + 10) == 'W')
+	if (*(s + 11) == 'W')
 		return 2;
 	return 0;
 }
@@ -141,7 +145,6 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 	if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
 		err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 	}
-
 // 检查位置是否变化，
 	end = my_stpcpy(sqlbuf, "select `call` from lastpacket where curdate()=date(tm) and `call`='");
 	end += mysql_real_escape_string(mysql, end, call, strlen(call));
@@ -333,9 +336,9 @@ void ToMysql(char *buf, int len)
 				*(p + 8) = 0;
 				p += 9;
 			} else {
-				table = *(p + 10);
-				*(p + 10) = 0;
-				p += 11;
+				table = *(p + 11);
+				*(p + 11) = 0;
+				p += 12;
 			}
 			lon = p;
 			flag = checklon(lon);
@@ -346,12 +349,47 @@ void ToMysql(char *buf, int len)
 				*(p + 9) = 0;
 				p += 10;
 			} else {
-				symbol = *(p + 11);
-				*(p + 11) = 0;
-				p += 12;
+				symbol = *(p + 12);
+				*(p + 12) = 0;
+				p += 13;
 			}
 			msg = p;
 		}
+
+		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
+
+	} else if (datatype == ',') {	// hi_res
+
+		int flag;
+		if (strlen(p) < 17)
+			goto unknow_msg;
+		lat = p;
+		flag = checklat(lat);
+		if (flag == 0)
+			lat = "";
+		if (flag == 1) {
+			table = *(p + 8);
+			*(p + 8) = 0;
+			p += 9;
+		} else {
+			table = *(p + 11);
+			*(p + 11) = 0;
+			p += 12;
+		}
+		lon = p;
+		flag = checklon(lon);
+		if (flag == 0)
+			lon = "";
+		if (flag == 1) {
+			symbol = *(p + 9);
+			*(p + 9) = 0;
+			p += 10;
+		} else {
+			symbol = *(p + 12);
+			*(p + 12) = 0;
+			p += 13;
+		}
+		msg = p;
 
 		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
 

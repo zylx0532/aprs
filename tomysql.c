@@ -273,7 +273,7 @@ void ToMysql(char *buf, int len)
 		return;
 	*p = 0;
 	p++;
-	{			// fix PHG04600!2343.06NR12034.80E#NextVOD + TNC-22M Rx-only iGate144.640Mhz,
+	{			// fix       PHG04600!2343.06NR12034.80E#NextVOD + TNC-22M Rx-only iGate144.640Mhz,
 		// change to !2343.06NR12034.80E# PHG04600 NextVOD + TNC-22M Rx-only iGate144.640Mhz,
 		char tmp[8];
 		if ((strlen(p) >= 27) && (memcmp(p, "PHG", 3) == 0)) {

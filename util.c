@@ -81,25 +81,36 @@ void aprspacket_high_to_low(char *buf, int len, int *high_res, char **low_res, i
 	*high_res = 0;
 	*low_res = buf;
 	*low_len = len;
-	p = memchr(buf, ':', len);
-	if (p && (len - (p - buf) >= 26) && ((*(p + 1) == ',') || (*(p + 1) == '!'))) {
-		*high_res = 1;
-		memcpy(low_res_buf, buf, len);
-		*low_len = len;
-		p = low_res_buf + (p - buf);
-		if (*(p + 1) == ',')
-			*(p + 1) = '!';
-		p = p + 9;	// now p point to 0 (3th char)
-		memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
-		p = p + 10;
-		*low_len -= 3;
-		memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
-		*low_len -= 3;
-		if (debug)
-			fprintf(stderr, "new APRS: %s\n", low_res_buf);
-		*low_res = low_res_buf;
+	p = memchr(buf, '>', len);
+	if (p == NULL)
 		return;
-	}
+	p = memchr(p, ':', len - (p - buf));
+	if (p == NULL)
+		return;
+	if (len - (p - buf) < 26)
+		return;
+	if ((*(p + 1) == '=') || (*(p + 1) == '!')) {
+		if (*(p + 2) == '/')	// compressed data
+			return;
+	} else if (*(p + 1) != ',')
+		return;
+	if (!isdigit(*(p + 9)))
+		return;
+	*high_res = 1;
+	memcpy(low_res_buf, buf, len);
+	*low_len = len;
+	p = low_res_buf + (p - buf);
+	if (*(p + 1) == ',')
+		*(p + 1) = '!';
+	p = p + 9;		// now p point to 0 (3th char)
+	memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
+	p = p + 10;
+	*low_len -= 3;
+	memmove(p, p + 3, *low_len - (p - low_res_buf) - 3);
+	*low_len -= 3;
+	if (debug)
+		fprintf(stderr, "new APRS: %s\n", low_res_buf);
+	*low_res = low_res_buf;
 	return;
 }
 
@@ -117,8 +128,13 @@ void aprspacket_gps_to_trans(char *buf, int len, char **trans_res, int *trans_le
 	strncpy(trans_res_buf, buf, MAXLEN);
 	*trans_res = trans_res_buf;
 	*trans_len = len;
-	p = strchr(trans_res_buf, ':');
-	if ((p == NULL) || (*(p + 1) != '!') || (strlen(p) < 20))
+	p = memchr(trans_res_buf, '>', len);
+	if (p == NULL)
+		return;
+	p = memchr(p, ':', len - (p - trans_res_buf));
+	if ((p == NULL) || (*(p + 1) != '!') || (len - (p - trans_res_buf) < 20))
+		return;
+	if (*(p + 2) == '/')	// compressed data
 		return;
 	p = p + 2;
 	memcpy(tmp_str, p, 2);

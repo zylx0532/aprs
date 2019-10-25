@@ -214,7 +214,7 @@ function urlmessage($call,$icon, $dtmstr, $msg, $ddt) {
 function checklatlon($glat, $glon) {
 	$s = substr($glat,-1);
 	if( $s!='S' && $s!='N' ) return false;
-	$s = substr($glon,-1;
+	$s = substr($glon,-1);
 	if( $s!='W' && $s!='E' ) return false;
 	return true;
 }

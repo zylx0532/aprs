@@ -128,6 +128,10 @@ void aprspacket_gps_to_trans(char *buf, int len, char **trans_res, int *trans_le
 	strncpy(trans_res_buf, buf, MAXLEN);
 	*trans_res = trans_res_buf;
 	*trans_len = len;
+
+	return;  // do not trans
+
+
 	p = memchr(trans_res_buf, '>', len);
 	if (p == NULL)
 		return;
@@ -164,11 +168,11 @@ void aprspacket_gps_to_trans(char *buf, int len, char **trans_res, int *trans_le
 
 	sprintf(tmp_str, "%02d", (int)tlat);
 	memcpy(p, tmp_str, 2);
-	sprintf(tmp_str, "%02.03f", (tlat - floor(tlat)) * 60);
+	sprintf(tmp_str, "%05.2f", (tlat - floor(tlat)) * 60);
 	memcpy(p + 2, tmp_str, 5);
 	sprintf(tmp_str, "%03d", (int)tlon);
 	memcpy(p + 9, tmp_str, 3);
-	sprintf(tmp_str, "%02.03f", (tlon - floor(tlon)) * 60);
+	sprintf(tmp_str, "%05.2f", (tlon - floor(tlon)) * 60);
 	memcpy(p + 12, tmp_str, 5);
 
 	fprintf(stderr, "new APRS: %s\n", trans_res_buf);

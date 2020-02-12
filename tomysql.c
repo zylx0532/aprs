@@ -48,6 +48,9 @@ int checkcall(char *call)
 	return 1;
 }
 
+// return 0, not valid
+// return 1, old format
+// return 2, new high res format
 int checklat(char *s)
 {
 	if (!isdigit(*s))
@@ -68,6 +71,16 @@ int checklat(char *s)
 		return 1;
 	if (*(s + 7) == 'S')
 		return 1;
+	if (!isdigit(*(s + 7)) && (*(s + 7) != ' '))
+		return 0;
+	if (!isdigit(*(s + 8)) && (*(s + 8) != ' '))
+		return 0;
+	if (!isdigit(*(s + 9)) && (*(s + 9) != ' '))
+		return 0;
+	if (*(s + 10) == 'N')
+		return 2;
+	if (*(s + 10) == 'S')
+		return 2;
 	return 0;
 }
 
@@ -93,6 +106,16 @@ int checklon(char *s)
 		return 1;
 	if (*(s + 8) == 'W')
 		return 1;
+	if (!isdigit(*(s + 8)) && (*(s + 8) != ' '))
+		return 0;
+	if (!isdigit(*(s + 9)) && (*(s + 9) != ' '))
+		return 0;
+	if (!isdigit(*(s + 10)) && (*(s + 10) != ' '))
+		return 0;
+	if (*(s + 11) == 'E')
+		return 2;
+	if (*(s + 11) == 'W')
+		return 2;
 	return 0;
 }
 
@@ -122,8 +145,6 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 	if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
 		err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 	}
-
-
 // 检查位置是否变化，
 	end = my_stpcpy(sqlbuf, "select `call` from lastpacket where curdate()=date(tm) and `call`='");
 	end += mysql_real_escape_string(mysql, end, call, strlen(call));
@@ -145,16 +166,17 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 		err_quit("Failed to check last postion, Error: %s\n", mysql_error(mysql));
 	}
 
-	MYSQL_RES * res;
+	MYSQL_RES *res;
 	res = mysql_store_result(mysql);
-	if(res==NULL) {
+	if (res == NULL) {
 		err_quit("Failed to store_result, Error: %s\n", mysql_error(mysql));
 	}
-	int newpos = (mysql_num_rows(res)==0);   // 新位置
-	mysql_free_result(res);	
+	int newpos = (mysql_num_rows(res) == 0);	// 新位置
+	mysql_free_result(res);
 
-	if(newpos) {  // 新位置，数据包放入 posaprspacket
-		if(debug) err_msg("NEW POSTION packet\n");	
+	if (newpos) {		// 新位置，数据包放入 posaprspacket
+		if (debug)
+			err_msg("NEW POSTION packet\n");
 		end = my_stpcpy(sqlbuf, "INSERT INTO posaprspacket (tm,`call`,datatype,lat,lon,`table`,symbol,msg) VALUES(now(),'");
 		end += mysql_real_escape_string(mysql, end, call, strlen(call));
 		end = my_stpcpy(end, "','");
@@ -176,9 +198,9 @@ void SavePkt(char *call, char datatype, char *lat, char *lon, char table, char s
 		if (mysql_real_query(mysql, sqlbuf, (unsigned int)(end - sqlbuf))) {
 			err_quit("Failed to insert row, Error: %s\n", mysql_error(mysql));
 		}
-	} else if(debug) 
-		err_msg("OLD POSTION packet\n");	
-	
+	} else if (debug)
+		err_msg("OLD POSTION packet\n");
+
 	end = my_stpcpy(sqlbuf, "REPLACE INTO lastpacket(tm,`call`,datatype,lat,lon,`table`,symbol,msg,path) VALUES(now(),'");
 	end += mysql_real_escape_string(mysql, end, call, strlen(call));
 	end = my_stpcpy(end, "','");
@@ -251,7 +273,7 @@ void ToMysql(char *buf, int len)
 		return;
 	*p = 0;
 	p++;
-	{			// fix PHG04600!2343.06NR12034.80E#NextVOD + TNC-22M Rx-only iGate144.640Mhz,
+	{			// fix       PHG04600!2343.06NR12034.80E#NextVOD + TNC-22M Rx-only iGate144.640Mhz,
 		// change to !2343.06NR12034.80E# PHG04600 NextVOD + TNC-22M Rx-only iGate144.640Mhz,
 		char tmp[8];
 		if ((strlen(p) >= 27) && (memcmp(p, "PHG", 3) == 0)) {
@@ -302,22 +324,72 @@ void ToMysql(char *buf, int len)
 			sprintf(lon, "%02.0f%05.2f%c", floor(flon), (flon - floor(flon)) * 60, W);
 			msg = "";
 		} else {
+			int flag;
 			if (strlen(p) < 17)
 				goto unknow_msg;
 			lat = p;
-			if (checklat(lat) == 0)
+			flag = checklat(lat);
+			if (flag == 0)
 				lat = "";
+			if (flag == 1) {
+				table = *(p + 8);
+				*(p + 8) = 0;
+				p += 9;
+			} else {
+				table = *(p + 11);
+				*(p + 11) = 0;
+				p += 12;
+			}
+			lon = p;
+			flag = checklon(lon);
+			if (flag == 0)
+				lon = "";
+			if (flag == 1) {
+				symbol = *(p + 9);
+				*(p + 9) = 0;
+				p += 10;
+			} else {
+				symbol = *(p + 12);
+				*(p + 12) = 0;
+				p += 13;
+			}
+			msg = p;
+		}
+
+		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
+
+	} else if (datatype == ',') {	// hi_res
+
+		int flag;
+		if (strlen(p) < 17)
+			goto unknow_msg;
+		lat = p;
+		flag = checklat(lat);
+		if (flag == 0)
+			lat = "";
+		if (flag == 1) {
 			table = *(p + 8);
 			*(p + 8) = 0;
 			p += 9;
-			lon = p;
-			if (checklon(lon) == 0)
-				lon = "";
+		} else {
+			table = *(p + 11);
+			*(p + 11) = 0;
+			p += 12;
+		}
+		lon = p;
+		flag = checklon(lon);
+		if (flag == 0)
+			lon = "";
+		if (flag == 1) {
 			symbol = *(p + 9);
 			*(p + 9) = 0;
 			p += 10;
-			msg = p;
+		} else {
+			symbol = *(p + 12);
+			*(p + 12) = 0;
+			p += 13;
 		}
+		msg = p;
 
 		SavePkt(call, datatype, lat, lon, table, symbol, msg, bufcopy, path);
 

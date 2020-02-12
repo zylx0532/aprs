@@ -6,20 +6,7 @@
 
 include "db.php";
 
-function strtolat($glat) {
-	$lat = 0;
-	$lat = substr($glat,0,2) + substr($glat,2,5)/60;
-	if(substr($glat,7,1)=='S')
-		$lat = -$lat;
-	return $lat;
-}
-function strtolon($glon) {
-	$lon = 0;
-	$lon = substr($glon,0,3) + substr($glon,3,5)/60;
-	if(substr($glon,8,1)=='W')
-		$lon = -$lon;
-	return $lon;
-}
+include "strtolonlat.php";
 
 date_default_timezone_set( 'Asia/Shanghai');
 $startdate=date_create();

@@ -15,6 +15,7 @@ udptolog
 udptomysql
 udptomysql2
 resendaprs
+testutil
 web/il.php
 web/img/tmp/
 *.c~

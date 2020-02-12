@@ -79,15 +79,15 @@ char *imei_call(unsigned char *imei)
 				if (*p == ' ') {
 					*p = 0;
 					p++;
-					if (*p && *(p+1) ) {
+					if (*p && *(p + 1)) {
 						table = *p;
-						symbol = *(p+1);
+						symbol = *(p + 1);
 					} else {
-						table ='/';
+						table = '/';
 						symbol = '>';
 					}
 				} else {
-					table ='/';
+					table = '/';
 					symbol = '>';
 				}
 				return call;
@@ -116,7 +116,7 @@ int process_6868(int c_fd, int len)
 	if ((cmd == 0x1a) && (len >= 15)) {	// heart beat 
 		snprintf(last_status, 100,
 			 "Voltage:%d GSM Signal:%d Satellites:%d/%d %s",
-			 buf[3], buf[4], buf[16] == 0 ? 0 : (buf[17] <=12 ? buf[17] : 12), len - 15,
+			 buf[3], buf[4], buf[16] == 0 ? 0 : (buf[17] <= 12 ? buf[17] : 12), len - 15,
 			 buf[16] == 0 ? "Unlocated" : (buf[16] == 1 ? "Realtime GPS" : (buf[16] == 2 ? "DGPS" : "Unknown")));
 		if (debug)
 			fprintf(stderr, "status: %s\n", last_status);
@@ -167,7 +167,7 @@ int process_6868(int c_fd, int len)
 	return 1;
 }
 
-int process_gumi(int c_fd, unsigned char cmd)  //0x67 0x67
+int process_gumi(int c_fd, unsigned char cmd)	//0x67 0x67
 {
 	unsigned char buf[MAXLEN];
 	int n;
@@ -304,15 +304,15 @@ int process_gumi(int c_fd, unsigned char cmd)  //0x67 0x67
 		Write(c_fd, buf, 7);
 		return 1;
 	}
-	if(cmd == 0x91) {      // unknow cmd, try empty respons
-                buf[0] = buf[1] = 0x67;
-                buf[2] = cmd;
-                buf[3] = 0;
-                buf[4] = 2;
-                err_msg("try unknow cmd");
-                Write(c_fd, buf, 7);
-                return 1;
-        }
+	if (cmd == 0x91) {	// unknow cmd, try empty respons
+		buf[0] = buf[1] = 0x67;
+		buf[2] = cmd;
+		buf[3] = 0;
+		buf[4] = 2;
+		err_msg("try unknow cmd");
+		Write(c_fd, buf, 7);
+		return 1;
+	}
 	err_msg("cmd = %02X, len=%d, I do not know how to deal", cmd, pkt_len);
 	return 0;
 }
@@ -335,16 +335,16 @@ int process_7878(int c_fd, unsigned char pkt_len)
 	if (n != 1)
 		exit(0);
 	cmd = buf[3];
-	if(debug)
-		fprintf(stderr,"gpr_7878, cmd=%02X\n",cmd);
+	if (debug)
+		fprintf(stderr, "gpr_7878, cmd=%02X\n", cmd);
 
 	if (cmd == 0x01) {	// login command
-		n = Readn(c_fd, buf + 4, pkt_len -2);  // 协议文本有错，实际的协议中，包长度是除了7878以外的所有字节，包含最后的0d0a
-		if (n != pkt_len -2)
+		n = Readn(c_fd, buf + 4, pkt_len - 2);	// 协议文本有错，实际的协议中，包长度是除了7878以外的所有字节，包含最后的0d0a
+		if (n != pkt_len - 2)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, login cmd=0x01\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
 		if (pkt_len < 10) {
 			if (debug)
@@ -373,12 +373,12 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		return 1;
 	}
 	if (cmd == 0x10) {	// GPS infomation
-		n = Readn(c_fd, buf + 4, pkt_len +2);  
-		if (n != pkt_len +2)
+		n = Readn(c_fd, buf + 4, pkt_len + 2);
+		if (n != pkt_len + 2)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, gps information cmd=0x10\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
 		int satnum = buf[10] & 0xf;
 
@@ -445,63 +445,63 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		return 1;
 	}
 	if (cmd == 0x08) {	// heart beat
-		n = Readn(c_fd, buf + 4, pkt_len +1);  
-		if (n != pkt_len +1)
+		n = Readn(c_fd, buf + 4, pkt_len + 1);
+		if (n != pkt_len + 1)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, hart beat cmd=0x08\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
 		return 1;
 	}
 	if (cmd == 0x13) {	// status   
-		n = Readn(c_fd, buf + 4, pkt_len ); 
-		if (n != pkt_len )
+		n = Readn(c_fd, buf + 4, pkt_len);
+		if (n != pkt_len)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, status cmd=0x13\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
 		return 1;
 	}
 	if (cmd == 0x30) {	// sync time
-		n = Readn(c_fd, buf + 4, pkt_len +1); 
-		if (n != pkt_len +1)
+		n = Readn(c_fd, buf + 4, pkt_len + 1);
+		if (n != pkt_len + 1)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, sync time cmd=0x30\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
-                time_t timep;
-                struct tm *p;
-                time(&timep);
-                p = gmtime(&timep);
-                buf[0] = buf[1] = 0x78;
-                buf[2] = 0x7;
-                buf[3] = 0x30;
-                buf[4] = (1900 + p->tm_year)/256;
-                buf[5] = (1900 + p->tm_year)%256;
-                buf[6] = (1 + p->tm_mon);
-                buf[7] = p->tm_mday;
-                buf[8] = p->tm_hour;
-                buf[9] = p->tm_min;
-                buf[10] = p->tm_sec;
-                buf[11] = 0x0d;
-                buf[12] = 0x0a;
+		time_t timep;
+		struct tm *p;
+		time(&timep);
+		p = gmtime(&timep);
+		buf[0] = buf[1] = 0x78;
+		buf[2] = 0x7;
+		buf[3] = 0x30;
+		buf[4] = (1900 + p->tm_year) / 256;
+		buf[5] = (1900 + p->tm_year) % 256;
+		buf[6] = (1 + p->tm_mon);
+		buf[7] = p->tm_mday;
+		buf[8] = p->tm_hour;
+		buf[9] = p->tm_min;
+		buf[10] = p->tm_sec;
+		buf[11] = 0x0d;
+		buf[12] = 0x0a;
 		if (debug) {
 			fprintf(stderr, "gps sync time return, len=%d\n", 13);
 			dump_pkt(buf, 13);
 		}
-                Write(c_fd, buf, 13);
+		Write(c_fd, buf, 13);
 		return 1;
 	}
 	if (cmd == 0x57) {	// sync data    
-		n = Readn(c_fd, buf + 4, pkt_len +1);  
-		if (n != pkt_len +1)
+		n = Readn(c_fd, buf + 4, pkt_len + 1);
+		if (n != pkt_len + 1)
 			exit(0);
 		if (debug) {
 			fprintf(stderr, "gps_7878: 0x78 0x78 len=%d, sync data cmd=0x57\n", pkt_len);
-			dump_pkt(buf + 3, n+1);
+			dump_pkt(buf + 3, n + 1);
 		}
 //起始位2byte 包长度1byte 协议号1byte 上传间隔2byte 开关1byte 闹钟9byte        勿扰时间开关1byte 勿扰时间9byte      GPS 定时开关1byte GPS 定时时间4byte SOS 爸爸妈妈3 个号码 （长度不定，3B（";"）做分割符 结束位2byte
 //        7878 1F           57            0060         01     000000 000000 000000 00              000000000000000000 00 00000000 3B3B3B0D0A
@@ -509,17 +509,17 @@ int process_7878(int c_fd, unsigned char pkt_len)
 //上传间隔：BCD 编码，0060，这个为60 秒
 
 		buf[0] = buf[1] = 0x78;
-		buf[2] = 0x1f;  //len
-		buf[3] = 0x57;  //cmd
-		buf[4] = 0x0;   //upload interval
-		buf[5] = 0x5;   //upload interval seconds
-		buf[6] = 0x1;   //switch
-		for(n=7;n<=31;n++)
-			buf[n]=0;
-		buf[31]=buf[32]=buf[33]=0x3b;
-		
-		buf[34]=0x0d;
-		buf[35]=0x0a;
+		buf[2] = 0x1f;	//len
+		buf[3] = 0x57;	//cmd
+		buf[4] = 0x0;	//upload interval
+		buf[5] = 0x5;	//upload interval seconds
+		buf[6] = 0x1;	//switch
+		for (n = 7; n <= 31; n++)
+			buf[n] = 0;
+		buf[31] = buf[32] = buf[33] = 0x3b;
+
+		buf[34] = 0x0d;
+		buf[35] = 0x0a;
 		if (debug) {
 			fprintf(stderr, "gps sync data return, len=%d\n", 36);
 			dump_pkt(buf, 36);
@@ -528,14 +528,14 @@ int process_7878(int c_fd, unsigned char pkt_len)
 		Write(c_fd, buf, 36);
 		return 1;
 	}
-	n = Readn(c_fd, buf + 4, pkt_len +1); 
-	if (n != pkt_len+1 )
+	n = Readn(c_fd, buf + 4, pkt_len + 1);
+	if (n != pkt_len + 1)
 		exit(0);
 	if (debug) {
 		fprintf(stderr, "gps_7878: 0x78 0x78 len=%d\n", pkt_len);
-		dump_pkt(buf + 3, n+2);
+		dump_pkt(buf + 3, n + 2);
 	}
-	
+
 	return 0;
 }
 
@@ -560,9 +560,9 @@ void Process(int c_fd)
 		if (n != 3) {
 			exit(0);
 		}
-		if(debug) 
-			fprintf(stderr,"packet first 3 bytes:: %02X%02X%02X\n", buffer[0], buffer[1], buffer[2]);
-			
+		if (debug)
+			fprintf(stderr, "packet first 3 bytes:: %02X%02X%02X\n", buffer[0], buffer[1], buffer[2]);
+
 		if ((buffer[0] == 0x67) && (buffer[1] == 0x67))	// gumi devices
 			r = process_gumi(c_fd, buffer[2]);
 		if ((buffer[0] == 0x68) && (buffer[1] == 0x68))	// gt02a

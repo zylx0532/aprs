@@ -304,20 +304,8 @@ function urlmessage($call, $icon, $dtmstr, $msg, $path, $ddt) {
 	return $m;	
 }
 
-function strtolat($glat) {
-	$lat = 0;
-	$lat = substr($glat,0,2) + substr($glat,2,5)/60;
-	if(substr($glat,7,1)=='S')
-		$lat = -$lat;
-	return $lat;
-}
-function strtolon($glon) {
-	$lon = 0;
-	$lon = substr($glon,0,3) + substr($glon,3,5)/60;
-	if(substr($glon,8,1)=='W')
-		$lon = -$lon;
-	return $lon;
-}
+include "strtolonlat.php";
+
 if ($cmd=="tm") {
 	$starttm = microtime(true);
 //删除10天前的每个台站最后状态数据包

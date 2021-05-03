@@ -139,13 +139,13 @@ chkconfig aprsc on
 vi /etc/rc.local 
 增加
 /usr/src/aprs/udptomysql
-/usr/src/aprs/local.toudp 127.0.0.1 BG6CQ
+/usr/src/aprs/local.toudp 127.0.0.1 BI8CYW
 
-(上面的BG6CQ可以用自己的呼号，是登录127.0.0.1 14580取数据的)
+(上面的BI8CYW可以用自己的呼号，是登录127.0.0.1 14580取数据的)
 
 11. 设置服务器自动对时
 执行crontab -e
-0 * * * * /usr/sbin/ntpdate 202.38.64.7 >/dev/null 2>/dev/null
+0 * * * * /usr/sbin/ntpdate npt.aliyun.com >/dev/null 2>/dev/null
 请根据实际情况修改ntp服务器ip
 
 12. 重启

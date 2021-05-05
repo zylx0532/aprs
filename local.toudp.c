@@ -99,7 +99,7 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-	char *call = "BG6CQ-5";
+	char *call = "BI8CYW-5";
 	char *server = "127.0.0.1";
 	signal(SIGCHLD, SIG_IGN);
 	if (argc == 3) {

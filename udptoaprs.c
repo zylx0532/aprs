@@ -4,7 +4,7 @@ udptoaprs [ -d ] 呼号
  
 功能：
 	从 127.0.0.1 14581 UDP端口接收数据
-	使用TCP转发给china.aprs2.net
+	使用TCP转发给hk.aprs2.net
 	注意：BA BD BG BH BR BI BY VR +数字 的才转发
 */
 
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 	err_msg("starting\n");
 	u_fd = Udp_server("127.0.0.1", "14581", (socklen_t *) & llen);
 
-	r_fd = Tcp_connect("china.aprs2.net", "14580");
+	r_fd = Tcp_connect("hk.aprs2.net", "14580");
 	snprintf(buf, MAXLEN, "user %s pass %d vers udptoaprs 1.0 filter r/31.83/117.29/1\r\n", argv[i], passcode(argv[i]));
 	Write(r_fd, buf, strlen(buf));
 	if (debug) {

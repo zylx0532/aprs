@@ -2,14 +2,12 @@
 aprscmdtcp [ -d ] local_ip local_port remote_ip remote_port
 功能：
         从 14590 tcp端口接收数据
-        使用TCP转发给asia.aprs2.net
+        使用TCP转发给hk.aprs2.net
         使用UDP转发给以下端口
                 127.0.0.1 14582
                 127.0.0.1 14583
                 120.25.100.30 14580 (aprs.helloce.net)
                 106.15.35.48  14580 (欧讯服务器)
-                如果SSID中有-13，发给
-                114.55.54.60  14580（lewei50.com）
 
         aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
 */
@@ -99,10 +97,10 @@ void relayaprs(char *buf, int len)
 {
 	char mybuf[MAXLEN];
 	strncpy(mybuf, buf, len);
-	sendudp(mybuf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
-	sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
-	if (strstr(mybuf, "-13>"))
-		sendudp(mybuf, len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
+	//sendudp(mybuf, len, "120.25.100.30", 14580);	// forward to aprs.hellocq.net
+	//sendudp(buf, len, "106.15.35.48", 14580);	// forward to ouxun server
+	//if (strstr(mybuf, "-13>"))
+	//	sendudp(mybuf, len, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
 	insertIG(mybuf, &len);
 	sendudp(mybuf, len, "127.0.0.1", 14582);	// udptolog
 	sendudp(mybuf, len, "127.0.0.1", 14583);	// udptomysql
@@ -362,7 +360,7 @@ void usage()
 {
 	printf("\naprscmdtcp v1.0 - aprs relay by james@ustc.edu.cn\n");
 	printf("aprscmdtcp [ -d ] [ local_ip local_port remote_ip remote_port ]\n");
-	printf("default is: aprscmdtcp 0.0.0.0 14590 asia.aprs2.net 14580\n\n");
+	printf("default is: aprscmdtcp 0.0.0.0 14590 hk.aprs2.net 14580\n\n");
 	exit(0);
 }
 
@@ -389,7 +387,7 @@ int main(int argc, char *argv[])
 	if (argc - i == 0) {
 		laddr = "0.0.0.0";
 		lport = "14590";
-		raddr = "china.aprs2.net";
+		raddr = "hk.aprs2.net";
 		rport = "14580";
 	} else if (argc - i == 4) {
 		laddr = argv[i];

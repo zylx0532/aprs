@@ -1,11 +1,9 @@
 /* aprs.tomysql.c v1.0 by  james@ustc.edu.cn 2015.12.19
 命令行： aprstomyql [ -d ] [ server 呼号 ]
-参数含义：呼号，用来连接china.aprs2.net服务器
+参数含义：呼号，用来连接hk.aprs2.net服务器
 功能：
-	登录china.aprs2.net服务器，获取呼号前缀为B和VR2的信息
+	登录hk.aprs2.net服务器，获取呼号前缀为B和VR2的信息
 	存放到数据库china中
-	如果SSID中有-13，并且路径中没有BG6CQ，发给
-                114.55.54.60  14580（lewei50.com）
 
 */
 
@@ -66,8 +64,6 @@ void Process(char *server, char *call)
 		buf[n] = 0;
 		if (debug)
 			fprintf(stderr, "S %s", buf);
-		if (strstr(buf, "-13>") && (strstr(buf, ",BG6CQ:") == 0))
-			sendudp(buf, n, "114.55.54.60", 14580);	// forward -13 to lewei50.comI
 		ToMysql(buf, n);
 	}
 }
@@ -81,8 +77,8 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-	char *call = "BG6DA-4";
-	char *server = "asia.aprs2.net";
+	char *call = "BI8CYW-5";
+	char *server = "hk.aprs2.net";
 
 	int i = 1;
 	int got_one = 0;

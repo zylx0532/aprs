@@ -66,8 +66,8 @@ void transform(double wgLat, double wgLon, double *mgLat, double *mgLon)
 	*mgLon = wgLon + dLon;
 }
 
-// 这是普通的  BH4WAD-8>AP51G2:!3215.79N/11943.80E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
-// 这是高精度的BH4WAD-8>AP51G2:!3215.79123N/11943.80456E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
+// 这是普通的  BI8CYW-8>AP51G2:!3215.79N/11943.80E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
+// 这是高精度的BI8CYW-8>AP51G2:!3215.79123N/11943.80456E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
 // 对于高精度的，返回值 high_res 为1，low_res是对应的低精度packet
 
 // 先查找:字符，然后看后面第9个字符是字母还是数字，如果是字母（上面是N）说明是之前的格式，如果是数字，说明是高精度格式
@@ -114,7 +114,7 @@ void aprspacket_high_to_low(char *buf, int len, int *high_res, char **low_res, i
 	return;
 }
 
-// 这是普通的BH4WAD-8>AP51G2:!3215.79N/11943.80E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
+// 这是普通的BBI8CYW-8>AP51G2:!3215.79N/11943.80E>000/000/A=000036QQ:241612172 12.2V 31.6C S11
 
 void aprspacket_gps_to_trans(char *buf, int len, char **trans_res, int *trans_len)
 {
